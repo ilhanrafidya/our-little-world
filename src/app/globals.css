@@ -71,6 +71,10 @@ body {
 .olw-map--dark {
   background: #0e0e1a;
 }
+/* Peta malam: tile OSM dibalik warnanya jadi gelap (pin & UI tidak ikut) */
+.olw-map--dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(185deg) brightness(0.88) contrast(0.92) saturate(0.55);
+}
 .olw-map .leaflet-control-attribution {
   font-size: 9px;
   background: rgba(255, 255, 255, 0.55);

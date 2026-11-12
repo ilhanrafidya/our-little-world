@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
           // Situs privat: jangan diindeks mesin pencari
           { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'same-origin' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           // Izinkan geolocation hanya dari origin sendiri (dipakai di Tahap 4)
           { key: 'Permissions-Policy', value: 'geolocation=(self), camera=(self)' },
         ],

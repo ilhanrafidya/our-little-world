@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import L from 'leaflet';
 import { AttributionControl, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import type { Memory, MemoryStatus } from '@/types/memory';
-import { TILE_ATTRIBUTION, TILE_URLS, type ThemeTokens } from '@/lib/theme';
+import { TILE_ATTRIBUTION, TILE_URL, type ThemeTokens } from '@/lib/theme';
 import { useWorld } from '@/store/world-store';
 
 /**
@@ -91,7 +91,6 @@ export default function LeafletCanvas({ memories, theme, visible }: LeafletCanva
   const selectedId = useWorld((s) => s.selectedMemoryId);
   const select = useWorld((s) => s.select);
   const initial = useWorld.getState().mapRequest;
-  const tileUrl = TILE_URLS[theme.tiles];
 
   return (
     <MapContainer
@@ -105,7 +104,13 @@ export default function LeafletCanvas({ memories, theme, visible }: LeafletCanva
       className={`olw-map olw-map--${theme.tiles}`}
       style={{ width: '100%', height: '100%' }}
     >
-      <TileLayer key={tileUrl} url={tileUrl} attribution={TILE_ATTRIBUTION} subdomains="abcd" maxZoom={20} />
+      <TileLayer
+        url={TILE_URL}
+        attribution={TILE_ATTRIBUTION}
+        maxZoom={19}
+        // OSM mensyaratkan header Referer pada request tile
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
       <AttributionControl position="bottomleft" prefix={false} />
       <Controller visible={visible} />
       {memories.map((m) => (

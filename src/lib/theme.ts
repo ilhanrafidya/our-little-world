@@ -96,10 +96,11 @@ export function phaseForHour(hour: number): Phase {
   return 'night';
 }
 
-export const TILE_URLS: Record<ThemeTokens['tiles'], string> = {
-  voyager: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-};
+/**
+ * Tile OpenStreetMap standar (gratis, tanpa API key). Mode malam memakai tile yang sama
+ * lalu digelapkan dengan CSS filter (lihat .olw-map--dark di globals.css).
+ * Catatan: CARTO basemaps kini mewajibkan API key, jadi tidak dipakai lagi.
+ */
+export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-export const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+export const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
