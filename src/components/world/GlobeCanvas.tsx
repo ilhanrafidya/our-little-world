@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
 import * as THREE from 'three';
-import { nearestCity, type Arc, type City } from '@/lib/geo';
+import { haversineKm, nearestCity, type Arc, type City } from '@/lib/geo';
 import { subsolarPoint } from '@/lib/sun';
 import type { ThemeTokens } from '@/lib/theme';
 import { useWorld } from '@/store/world-store';
@@ -155,6 +155,39 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
 
   const controls = useCallback(() => globeRef.current?.controls() as unknown as Controls | undefined, []);
 
+  // Penanda kota berupa elemen HTML: selalu tajam di layar retina
+  const markerEls = useRef(new Map<string, HTMLDivElement>());
+  const flyRef = useRef<(c: City) => void>(() => {});
+  const updateMarkers = useCallback((pov: { lat: number; lng: number; altitude: number }) => {
+    // Sudut cakrawala yang terlihat dari ketinggian kamera
+    const horizon = (Math.acos(1 / (1 + pov.altitude)) * 180) / Math.PI - 3;
+    for (const c of citiesRef.current) {
+      const el = markerEls.current.get(c.key);
+      if (!el) continue;
+      const dist = haversineKm(pov, c) / 111.195; // km → derajat
+      const visible = dist < horizon;
+      el.style.opacity = visible ? '1' : '0';
+      el.style.pointerEvents = visible ? 'auto' : 'none';
+    }
+  }, []);
+
+  const makeMarker = useCallback((d: object) => {
+    const c = d as City;
+    let el = markerEls.current.get(c.key);
+    if (!el) {
+      el = document.createElement('div');
+      markerEls.current.set(c.key, el);
+    }
+    el.className = `olw-marker olw-marker--${c.status}`;
+    el.innerHTML = `<span class="olw-marker__dot"></span><span class="olw-marker__label"></span>`;
+    (el.querySelector('.olw-marker__label') as HTMLSpanElement).textContent = c.name;
+    el.onclick = (e) => {
+      e.stopPropagation();
+      flyRef.current(c);
+    };
+    return el;
+  }, []);
+
   // ── masuk ke peta 2D ──
   const flyIntoCity = useCallback(
     (city: City) => {
@@ -172,10 +205,12 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
     },
     [controls, enterMap, stopJourney],
   );
+  flyRef.current = flyIntoCity;
 
   const onZoom = useCallback(
     ({ lat, lng, altitude }: { lat: number; lng: number; altitude: number }) => {
       (material.uniforms.globeRotation!.value as THREE.Vector2).set(lng, lat);
+      updateMarkers({ lat, lng, altitude });
       if (busyRef.current || modeRef.current !== 'globe' || altitude > ENTER_MAP_ALTITUDE) return;
 
       busyRef.current = true;
@@ -184,7 +219,7 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
       else enterMap({ center: [lat, lng], zoom: 11 });
       setTimeout(() => (busyRef.current = false), 800);
     },
-    [enterMap, material],
+    [enterMap, material, updateMarkers],
   );
 
   const onGlobeReady = useCallback(() => {
@@ -208,7 +243,14 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
     const pov = last ? { lat: last.lat, lng: last.lng, altitude: 2.2 } : DEFAULT_POV;
     g.pointOfView(pov, 0);
     (material.uniforms.globeRotation!.value as THREE.Vector2).set(pov.lng, pov.lat);
-  }, [controls, journey, material]);
+    updateMarkers(pov);
+  }, [controls, journey, material, updateMarkers]);
+
+  // Kota baru ditambah → hitung ulang visibilitas penanda
+  useEffect(() => {
+    const g = globeRef.current;
+    if (g) requestAnimationFrame(() => updateMarkers(g.pointOfView()));
+  }, [cities, updateMarkers]);
 
   // ── Back to Globe: animasi "terbang keluar" dari posisi peta terakhir ──
   const prevMode = useRef(mode);
@@ -255,7 +297,10 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
 
     let burstTimer: ReturnType<typeof setTimeout> | undefined;
     const run = runJourney(g, journey, theme.accent, {
-      onPov: (pov) => (material.uniforms.globeRotation!.value as THREE.Vector2).set(pov.lng, pov.lat),
+      onPov: (pov) => {
+        (material.uniforms.globeRotation!.value as THREE.Vector2).set(pov.lng, pov.lat);
+        updateMarkers(pov);
+      },
       onArrive: (city) => {
         setBurst(city);
         clearTimeout(burstTimer);
@@ -273,27 +318,11 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
     };
     // theme.accent sengaja tidak jadi dependency: ganti tema tidak boleh mengulang journey
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journeyState.playing, journey, controls, stopJourney, material]);
+  }, [journeyState.playing, journey, controls, stopJourney, material, updateMarkers]);
 
   // ── data visual ──
-  const playing = journeyState.playing;
-
-  const arcColor = useCallback(
-    (d: object) => {
-      const a = d as Arc;
-      // Saat journey, rute digambar ulang oleh engine → arc bawaan diredupkan
-      if (playing) return ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.03)'];
-      if (a.kind === 'wish') return [`rgba(${theme.wishRgb},0.75)`, `rgba(${theme.wishRgb},0.2)`];
-      return theme.arc;
-    },
-    [theme, playing],
-  );
-
-  type Ring = { lat: number; lng: number; burst: boolean };
-  const rings = useMemo<Ring[]>(() => {
-    const base: Ring[] = cities.filter((c) => c.status === 'visited').map((c) => ({ lat: c.lat, lng: c.lng, burst: false }));
-    return burst ? [...base, { lat: burst.lat, lng: burst.lng, burst: true }] : base;
-  }, [cities, burst]);
+  // Gelombang cahaya hanya saat tiba di kota (Play Journey)
+  const rings = useMemo(() => (burst ? [{ lat: burst.lat, lng: burst.lng }] : []), [burst]);
 
   if (size.w === 0) return null;
 
@@ -310,48 +339,22 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
       atmosphereAltitude={0.2}
       onGlobeReady={onGlobeReady}
       onZoom={onZoom}
-      // Titik kota
-      pointsData={cities}
-      pointLat="lat"
-      pointLng="lng"
-      pointAltitude={0.012}
-      pointRadius={(d: object) => 0.45 + Math.min((d as City).count, 8) * 0.06}
-      pointColor={(d: object) => ((d as City).status === 'visited' ? theme.accent : theme.wish)}
-      pointsMerge={false}
-      onPointClick={(d: object) => flyIntoCity(d as City)}
-      // Label nama kota
-      labelsData={cities}
-      labelLat="lat"
-      labelLng="lng"
-      labelText="name"
-      labelSize={0.9}
-      labelDotRadius={0}
-      labelAltitude={0.014}
-      labelColor={() => 'rgba(255,250,242,0.92)'}
-      labelResolution={3}
-      onLabelClick={(d: object) => flyIntoCity(d as City)}
-      // Denyut di kota yang sudah dikunjungi
+      // Penanda kota (HTML, tajam di retina)
+      htmlElementsData={cities}
+      htmlLat="lat"
+      htmlLng="lng"
+      htmlAltitude={0.004}
+      htmlElement={makeMarker}
+      htmlTransitionDuration={0}
+      // Gelombang cahaya saat tiba di kota
       ringsData={rings}
       ringLat="lat"
       ringLng="lng"
-      ringColor={(d: object) => (t: number) =>
-        (d as Ring).burst ? `rgba(255,250,242,${Math.max(0, 1 - t)})` : `rgba(${theme.accentRgb},${Math.max(0, 1 - t)})`
-      }
-      ringMaxRadius={(d: object) => ((d as Ring).burst ? 5 : 2.2)}
-      ringPropagationSpeed={(d: object) => ((d as Ring).burst ? 3.5 : 1.4)}
-      ringRepeatPeriod={(d: object) => ((d as Ring).burst ? 420 : 1600)}
-      // Flight arcs
-      arcsData={arcs}
-      arcStartLat="startLat"
-      arcStartLng="startLng"
-      arcEndLat="endLat"
-      arcEndLng="endLng"
-      arcColor={arcColor}
-      arcStroke={(d: object) => ((d as Arc).kind === 'wish' ? 0.25 : 0.55)}
-      arcDashLength={(d: object) => ((d as Arc).kind === 'wish' ? 0.04 : 0.55)}
-      arcDashGap={(d: object) => ((d as Arc).kind === 'wish' ? 0.04 : 0.2)}
-      arcDashAnimateTime={(d: object) => ((d as Arc).kind === 'wish' ? 0 : 2600)}
-      arcAltitudeAutoScale={0.45}
+      ringColor={() => (t: number) => `rgba(255,250,242,${Math.max(0, 1 - t)})`}
+      ringMaxRadius={4}
+      ringPropagationSpeed={3}
+      ringRepeatPeriod={450}
+      ringAltitude={0.003}
     />
   );
 }

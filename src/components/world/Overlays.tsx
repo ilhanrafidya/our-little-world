@@ -171,7 +171,7 @@ export function JourneyControls({ journey }: { journey: City[] }) {
             animate={{ opacity: 1, y: 0, rotate: j.index % 2 ? 2 : -2, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 20, stiffness: 220 }}
-            className="pointer-events-none absolute inset-x-0 bottom-[calc(max(env(safe-area-inset-bottom),1rem)+6.5rem)] z-20 flex justify-center"
+            className="pointer-events-none fixed inset-x-0 bottom-[calc(max(env(safe-area-inset-bottom),1rem)+7rem)] z-20 flex justify-center"
           >
             <div className="w-44 rounded-[4px] bg-cream-50 p-2 pb-3 text-night-950 shadow-2xl shadow-black/50">
               {city.coverUrl ? (
@@ -219,7 +219,7 @@ export function JourneyControls({ journey }: { journey: City[] }) {
       </AnimatePresence>
 
       {/* Kontrol */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3 px-4 pb-safe">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3 px-4 pb-safe">
         {j.playing && (
           <div className="flex gap-1.5" aria-hidden>
             {journey.map((c, i) => (
@@ -285,7 +285,7 @@ export function GlobeHint({ empty }: { empty: boolean }) {
   // Di bawah (di atas tombol Play Journey) agar tidak menabrak judul
   return (
     <p
-      className={`pointer-events-none absolute inset-x-0 z-10 px-24 text-center text-xs font-medium tracking-tight text-cream-50/55 ${
+      className={`pointer-events-none fixed inset-x-0 z-10 px-24 text-center text-xs font-medium tracking-tight text-cream-50/55 ${
         empty ? 'bottom-[calc(max(env(safe-area-inset-bottom),1rem)+1.75rem)]' : 'bottom-[calc(max(env(safe-area-inset-bottom),1rem)+4.5rem)]'
       }`}
     >

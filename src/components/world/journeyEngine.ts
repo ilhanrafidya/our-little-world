@@ -126,6 +126,19 @@ function vehicleTexture(kind: 'plane' | 'car', accent: string): THREE.CanvasText
   return tex;
 }
 
+function shadowTexture(): THREE.CanvasTexture {
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  grad.addColorStop(0, 'rgba(0,0,0,0.55)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, S, S);
+  return new THREE.CanvasTexture(c);
+}
+
 // ── Engine ─────────────────────────────────────────────────────────
 export interface JourneyCallbacks {
   /** dipanggil setiap kamera berpindah (untuk uniform shader siang/malam) */
@@ -196,27 +209,21 @@ export function runJourney(
     );
   }
 
-  function makeTrail(): Line2 {
-    const mat = new LineMaterial({ color: accent, linewidth: 3.5, transparent: true, opacity: 0.95, depthWrite: false });
+  /** Garis rute dibuat sekali; ditampilkan bertahap (instanceCount) agar ringan di iPhone. */
+  function makeTrail(points: number[]): Line2 {
+    const mat = new LineMaterial({ color: accent, linewidth: 3, transparent: true, opacity: 0.95, depthWrite: false });
     const size = new THREE.Vector2();
     (g.renderer() as THREE.WebGLRenderer).getSize(size);
     mat.resolution.set(size.x, size.y);
-    const line = new Line2(new LineGeometry(), mat);
+    const geo = new LineGeometry();
+    geo.setPositions(points);
+    geo.instanceCount = 0;
+    const line = new Line2(geo, mat);
     line.renderOrder = 10;
     line.frustumCulled = false;
-    line.visible = false;
     scene.add(line);
     trails.push(line);
     return line;
-  }
-
-  function setTrail(line: Line2, pts: number[]) {
-    if (pts.length < 6) return;
-    const geo = new LineGeometry();
-    geo.setPositions(pts);
-    line.geometry.dispose();
-    line.geometry = geo;
-    line.visible = true;
   }
 
   async function arrive(city: City, index: number, carMode: boolean) {
@@ -232,70 +239,106 @@ export function runJourney(
     const kind: 'plane' | 'car' = km > CAR_MAX_KM ? 'plane' : 'car';
     setJ({ phase: 'travel', index, vehicle: kind });
 
+    const flightAlt = kind === 'plane' ? clamp(km / 9000, 0.04, 0.35) : 0.003;
+    const camBase = kind === 'plane' ? 0.42 : 0.13;
+    const camPeak = kind === 'plane' ? clamp(km / 3500, 0.3, 1.9) : clamp(km / 450, 0.03, 0.2);
+    const duration = kind === 'plane' ? clamp(3200 + km * 0.45, 4000, 8000) : clamp(2800 + km * 12, 3000, 5000);
+    const baseScale = kind === 'plane' ? 0.062 : 0.048;
+
+    const pos = (u: number) => {
+      const p = slerp(a, b, u);
+      const alt = kind === 'plane' ? 0.004 + flightAlt * Math.sin(Math.PI * u) : flightAlt;
+      return { ...p, alt };
+    };
+
+    // Rute di-sampling sekali di awal
+    const SAMPLES = 180;
+    const pts: number[] = [];
+    for (let i = 0; i <= SAMPLES; i++) {
+      const p = pos(i / SAMPLES);
+      const xyz = g.getCoords(p.lat, p.lng, p.alt);
+      pts.push(xyz.x, xyz.y, xyz.z);
+    }
+    const trail = makeTrail(pts);
+
+    // Kendaraan + bayangan di permukaan (memberi kesan melayang)
     const tex = vehicleTexture(kind, accent);
     textures.push(tex);
     const sprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: tex, sizeAttenuation: false, depthTest: false, transparent: true }),
+      new THREE.SpriteMaterial({ map: tex, sizeAttenuation: false, depthTest: false, transparent: true, opacity: 0 }),
     );
     sprite.renderOrder = 20;
-    sprite.scale.set(kind === 'plane' ? 0.09 : 0.07, kind === 'plane' ? 0.09 : 0.07, 1);
     scene.add(sprite);
 
-    const trail = makeTrail();
-    const pts: number[] = [];
+    const shadowTex = shadowTexture();
+    textures.push(shadowTex);
+    const shadow = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: shadowTex, sizeAttenuation: false, depthTest: false, transparent: true, opacity: 0 }),
+    );
+    shadow.renderOrder = 15;
+    if (kind === 'plane') scene.add(shadow);
 
-    const flightAlt = kind === 'plane' ? clamp(km / 9000, 0.05, 0.4) : 0.004;
-    const camBase = kind === 'plane' ? 0.4 : 0.12;
-    const camPeak = kind === 'plane' ? clamp(km / 3500, 0.35, 2.0) : clamp(km / 400, 0.04, 0.25);
-    const duration = kind === 'plane' ? clamp(2800 + km * 0.45, 3500, 7500) : clamp(2400 + km * 12, 2600, 4600);
-
-    // lepas landas: kamera naik sedikit dari kota asal
+    // lepas landas: kamera sedikit naik di kota asal
     await flyTo({ lat: a.lat, lng: a.lng, altitude: camBase }, 700);
 
-    const pos = (t: number) => {
-      const p = slerp(a, b, t);
-      const alt = kind === 'plane' ? 0.006 + flightAlt * Math.sin(Math.PI * t) : flightAlt;
-      return { ...p, alt };
-    };
     const camera = g.camera() as THREE.Camera;
     const v1 = new THREE.Vector3();
     const v2 = new THREE.Vector3();
+    let heading: number | null = null;
 
     await animate(duration, (raw) => {
-      const t = easeInOut(raw);
-      const p = pos(t);
+      const u = easeInOut(raw);
+      const p = pos(u);
       const xyz = g.getCoords(p.lat, p.lng, p.alt);
       sprite.position.set(xyz.x, xyz.y, xyz.z);
 
-      // jejak rute
-      pts.push(xyz.x, xyz.y, xyz.z);
-      setTrail(trail, pts);
+      // muncul & menghilang halus + sedikit membesar di tengah perjalanan
+      const fade = Math.min(1, raw / 0.08, (1 - raw) / 0.08);
+      const lift = kind === 'plane' ? 0.85 + 0.15 * Math.sin(Math.PI * u) : 1;
+      const sc = baseScale * lift * (0.7 + 0.3 * fade);
+      sprite.scale.set(sc, sc, 1);
+      (sprite.material as THREE.SpriteMaterial).opacity = fade;
 
-      // kamera mengikuti kendaraan
-      setPov({ lat: p.lat, lng: p.lng, altitude: camBase + camPeak * Math.sin(Math.PI * t) });
+      if (kind === 'plane') {
+        const ground = g.getCoords(p.lat, p.lng, 0.001);
+        shadow.position.set(ground.x, ground.y, ground.z);
+        const sh = baseScale * (1.1 - 0.4 * Math.sin(Math.PI * u));
+        shadow.scale.set(sh, sh * 0.6, 1);
+        (shadow.material as THREE.SpriteMaterial).opacity = fade * (0.55 - 0.3 * Math.sin(Math.PI * u));
+      }
 
-      // arah hadap kendaraan di layar
-      const ahead = pos(Math.min(1, t + 0.01));
+      // jejak rute sampai posisi kendaraan
+      trail.geometry.instanceCount = Math.max(0, Math.floor(u * SAMPLES));
+
+      // kamera sedikit tertinggal → kendaraan terlihat melaju di layar
+      const cu = Math.max(0, u - 0.05);
+      const cp = slerp(a, b, cu);
+      setPov({ lat: cp.lat, lng: cp.lng, altitude: camBase + camPeak * Math.sin(Math.PI * u) });
+
+      // arah hadap (diperhalus agar tidak bergetar)
+      const ahead = pos(Math.min(1, u + 0.015));
       const xyz2 = g.getCoords(ahead.lat, ahead.lng, ahead.alt);
       v1.set(xyz.x, xyz.y, xyz.z).project(camera);
       v2.set(xyz2.x, xyz2.y, xyz2.z).project(camera);
       const dx = v2.x - v1.x;
       const dy = v2.y - v1.y;
       if (Math.abs(dx) + Math.abs(dy) > 1e-5) {
-        (sprite.material as THREE.SpriteMaterial).rotation = Math.atan2(dy, dx) - Math.PI / 2;
+        const target = Math.atan2(dy, dx) - Math.PI / 2;
+        if (heading === null) heading = target;
+        else {
+          let diff = target - heading;
+          diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+          heading += diff * 0.18;
+        }
+        (sprite.material as THREE.SpriteMaterial).rotation = heading;
       }
     });
 
-    // lengkapi jejak sampai tujuan (kalau di-skip)
-    for (let i = 1; i <= 20; i++) {
-      const p = pos(i / 20);
-      const xyz = g.getCoords(p.lat, p.lng, p.alt);
-      pts.push(xyz.x, xyz.y, xyz.z);
-    }
-    setTrail(trail, pts);
-
+    trail.geometry.instanceCount = SAMPLES;
     scene.remove(sprite);
+    scene.remove(shadow);
     sprite.material.dispose();
+    shadow.material.dispose();
     await arrive(b, index, kind === 'car');
   }
 
