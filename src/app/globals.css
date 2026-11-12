@@ -53,3 +53,63 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Peta 2D (Leaflet) ─────────────────────────────────────── */
+.olw-map {
+  background: #e9e4dc;
+}
+.olw-map--dark {
+  background: #0e0e1a;
+}
+.olw-map .leaflet-control-attribution {
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(6px);
+  border-top-left-radius: 8px;
+  margin-bottom: env(safe-area-inset-bottom);
+}
+.olw-map--dark .leaflet-control-attribution {
+  background: rgba(10, 10, 30, 0.55);
+  color: rgba(255, 255, 255, 0.6);
+}
+.olw-map--dark .leaflet-control-attribution a {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Pin custom: visited = hati pink, wishlist = bintang ungu */
+.olw-pin-wrap {
+  background: none;
+  border: none;
+}
+.olw-pin {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid #fffaf2;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.olw-pin svg {
+  width: 18px;
+  height: 18px;
+  fill: #fffaf2;
+  transform: rotate(45deg);
+}
+.olw-pin--visited {
+  background: linear-gradient(135deg, #ff7a9c, #ff5c8a);
+}
+.olw-pin--wishlist {
+  background: linear-gradient(135deg, #b9a6ff, #8b7bff);
+  border-style: dashed;
+}
+.olw-pin.is-selected {
+  transform: rotate(-45deg) scale(1.25);
+  box-shadow:
+    0 0 0 6px rgba(255, 255, 255, 0.35),
+    0 10px 20px rgba(0, 0, 0, 0.35);
+}

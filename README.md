@@ -2,7 +2,7 @@
 
 Peta kenangan privat berdua: Globe 3D ⇄ Peta 2D, Polaroid memories, di-deploy gratis di Vercel.
 
-**Progres:** ✅ Tahap 1 (blueprint) · ✅ Tahap 2 (backend & auth) · ⏳ Tahap 3 (hybrid map) · ⏳ Tahap 4 (Polaroid, Add Spot, polish)
+**Progres:** ✅ Tahap 1 (blueprint) · ✅ Tahap 2 (backend & auth) · ✅ Tahap 3 (hybrid map) · ⏳ Tahap 4 (Polaroid, Add Spot, polish)
 
 ---
 
