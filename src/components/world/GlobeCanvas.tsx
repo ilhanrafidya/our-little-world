@@ -38,6 +38,7 @@ const fragmentShader = /* glsl */ `
   uniform sampler2D nightTexture;
   uniform vec2 sunPosition;
   uniform vec2 globeRotation;
+  uniform float lookMode; // 0 = seluruh bumi siang, 1 = seluruh bumi malam (lampu kota), 2 = realistis (garis matahari)
   varying vec3 vNormal;
   varying vec2 vUv;
 
@@ -58,14 +59,20 @@ const fragmentShader = /* glsl */ `
     float intensity = dot(normalize(vNormal), normalize(rotatedSunDirection));
     vec4 dayColor = texture2D(dayTexture, vUv);
     vec4 lights = texture2D(nightTexture, vUv);
-    // Sisi malam tetap terang: daratan/laut versi "cahaya bulan" (kebiruan) + lampu kota menyala
-    // Hampir seterang siang, sedikit kebiruan, plus lampu kota bersinar keemasan
-    vec3 moonlit = dayColor.rgb * vec3(0.78, 0.84, 1.0) + vec3(0.03, 0.04, 0.08);
-    float glow = smoothstep(0.08, 0.6, max(max(lights.r, lights.g), lights.b));
-    vec3 cityLights = lights.rgb * vec3(2.4, 1.9, 1.2) + vec3(1.0, 0.78, 0.45) * glow * 0.35;
-    vec4 nightColor = vec4(min(moonlit + cityLights, vec3(1.0)), 1.0);
-    float blendFactor = smoothstep(-0.2, 0.2, intensity);
-    gl_FragColor = mix(nightColor, dayColor, blendFactor);
+
+    // Tampilan malam: benua tetap jelas (cahaya bulan kebiruan) + lampu kota menyala terang di seluruh dunia
+    vec3 moonlit = dayColor.rgb * vec3(0.5, 0.6, 0.92) + vec3(0.02, 0.03, 0.07);
+    float lum = max(max(lights.r, lights.g), lights.b);
+    float glow = smoothstep(0.04, 0.45, lum);
+    vec3 city = lights.rgb * 1.6 + vec3(1.0, 0.8, 0.45) * glow * 1.1;
+    vec3 nightColor = min(moonlit * (1.0 - glow * 0.45) + city, vec3(1.0));
+
+    float blendFactor;
+    if (lookMode < 0.5) blendFactor = 1.0;
+    else if (lookMode < 1.5) blendFactor = 0.0;
+    else blendFactor = smoothstep(-0.2, 0.2, intensity);
+
+    gl_FragColor = vec4(mix(nightColor, dayColor.rgb, blendFactor), 1.0);
   }
 `;
 
@@ -123,6 +130,7 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
         nightTexture: { value: night },
         sunPosition: { value: new THREE.Vector2() },
         globeRotation: { value: new THREE.Vector2() },
+        lookMode: { value: 1 },
       },
       vertexShader,
       fragmentShader,
@@ -139,6 +147,12 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
     const id = setInterval(updateSun, 60_000);
     return () => clearInterval(id);
   }, [material]);
+
+  // Tampilan bumi mengikuti tema: malam → semua lampu kota menyala, siang → terang, pagi/senja → garis matahari asli
+  useEffect(() => {
+    const look = theme.phase === 'night' ? 1 : theme.phase === 'day' ? 0 : 2;
+    material.uniforms.lookMode!.value = look;
+  }, [theme.phase, material]);
 
   const controls = useCallback(() => globeRef.current?.controls() as unknown as Controls | undefined, []);
 
