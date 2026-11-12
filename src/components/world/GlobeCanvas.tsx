@@ -94,9 +94,13 @@ export interface GlobeCanvasProps {
   theme: ThemeTokens;
   /** tampilkan garis rute saat globe diam (opsi pengguna, default mati) */
   showRoutes: boolean;
+  /** bumi berputar pelan otomatis (opsi pengguna, default nyala) */
+  autoRotate: boolean;
 }
 
-export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes }: GlobeCanvasProps) {
+export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes, autoRotate }: GlobeCanvasProps) {
+  const autoRotateRef = useRef(autoRotate);
+  autoRotateRef.current = autoRotate;
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const busyRef = useRef(false); // sedang animasi kamera → abaikan ambang zoom
   // true hanya saat jari benar-benar menggeser/mencubit globe (bukan animasi atau sisa gerakan)
@@ -237,7 +241,7 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes }
 
     const c = controls();
     if (c) {
-      c.autoRotate = true;
+      c.autoRotate = autoRotateRef.current;
       c.autoRotateSpeed = 0.35;
       c.enableDamping = true;
       // Pengguna mulai menggeser globe → hentikan Play Journey
@@ -266,6 +270,12 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes }
     if (g) requestAnimationFrame(() => updateMarkers(g.pointOfView()));
   }, [cities, updateMarkers]);
 
+  // Opsi bumi berputar diubah dari menu settings
+  useEffect(() => {
+    const c = controls();
+    if (c && !busyRef.current) c.autoRotate = autoRotate;
+  }, [autoRotate, controls]);
+
   // ── Back to Globe: animasi "terbang keluar" dari posisi peta terakhir ──
   const prevMode = useRef(mode);
   useEffect(() => {
@@ -292,7 +302,7 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes }
       const t = setTimeout(() => {
         busyRef.current = false;
         const c = controls();
-        if (c) c.autoRotate = true;
+        if (c) c.autoRotate = autoRotateRef.current;
       }, 1700);
       return () => clearTimeout(t);
     }
@@ -331,7 +341,7 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes }
       setBurst(null);
       busyRef.current = false;
       const cc = controls();
-      if (cc) cc.autoRotate = true;
+      if (cc) cc.autoRotate = autoRotateRef.current;
     };
     // theme.accent sengaja tidak jadi dependency: ganti tema tidak boleh mengulang journey
     // eslint-disable-next-line react-hooks/exhaustive-deps

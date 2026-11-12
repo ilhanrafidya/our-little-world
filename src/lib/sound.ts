@@ -10,9 +10,27 @@
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let noise: AudioBuffer | null = null;
+let muted = false;
+try {
+  if (typeof window !== 'undefined') muted = localStorage.getItem('olw-muted') === '1';
+} catch {
+  /* abaikan */
+}
+
+export function isMuted() {
+  return muted;
+}
+export function setMuted(value: boolean) {
+  muted = value;
+  try {
+    localStorage.setItem('olw-muted', value ? '1' : '0');
+  } catch {
+    /* abaikan */
+  }
+}
 
 function audio(): { ctx: AudioContext; out: GainNode } | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined' || muted) return null;
   try {
     if (!ctx) {
       const nav = navigator as Navigator & { audioSession?: { type: string } };

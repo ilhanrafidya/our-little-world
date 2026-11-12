@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { haversineKm, type City } from '@/lib/geo';
 import { formatDate } from '@/lib/format';
@@ -10,7 +11,11 @@ import LockButton from '@/components/auth/LockButton';
 import { reverseGeocode } from '@/lib/geocode';
 import {
   AlbumIcon,
+  GearIcon,
   GlobeIcon,
+  MuteIcon,
+  RotateIcon,
+  VolumeIcon,
   MoonIcon,
   PauseIcon,
   PlayIcon,
@@ -28,87 +33,164 @@ const PHASE_ICON = { dawn: SunriseIcon, day: SunIcon, dusk: SunsetIcon, night: M
 const glass =
   'border border-white/15 bg-[var(--panel)] text-cream-50 shadow-lg shadow-black/20 backdrop-blur-xl';
 
-// ── Top bar ────────────────────────────────────────────────────
+// ── Top bar + menu settings ───────────────────────────────────
+const springOut = { type: 'spring', damping: 22, stiffness: 320 } as const;
+
 export function TopBar({
   phase,
   override,
   onCycleTheme,
   showRoutes,
   onToggleRoutes,
-  hasRoutes,
+  autoRotate,
+  onToggleRotate,
+  muted,
+  onToggleMute,
 }: {
   phase: Phase;
   override: ThemeOverride;
   onCycleTheme: () => void;
   showRoutes: boolean;
   onToggleRoutes: () => void;
-  hasRoutes: boolean;
+  autoRotate: boolean;
+  onToggleRotate: () => void;
+  muted: boolean;
+  onToggleMute: () => void;
 }) {
   const mode = useWorld((s) => s.mode);
   const picking = useWorld((s) => s.editor.picking);
   const backToGlobe = useWorld((s) => s.backToGlobe);
+  const [open, setOpen] = useState(false);
   const t = THEMES[phase];
   const Icon = PHASE_ICON[phase];
 
-  return (
-    <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 px-4 pt-safe">
-      <AnimatePresence mode="wait" initial={false}>
-        {picking ? (
-          <span key="picking" />
-        ) : mode === 'map' ? (
-          <motion.button
-            key="back"
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            onClick={backToGlobe}
-            className={`pointer-events-auto flex h-10 items-center gap-2 rounded-full px-4 text-[13px] font-medium tracking-tight active:scale-95 ${glass}`}
-          >
-            <GlobeIcon size={17} /> Back to Globe
-          </motion.button>
-        ) : (
-          <motion.h1
-            key="title"
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="pt-1.5 font-display text-2xl italic text-cream-50 drop-shadow"
-          >
-            Our Little World
-          </motion.h1>
-        )}
-      </AnimatePresence>
+  const on = 'border border-transparent bg-cream-50 text-night-950 shadow-lg';
+  const circle = 'grid h-10 w-10 place-items-center rounded-full transition-colors active:scale-90';
 
-      <div className="pointer-events-auto flex items-center gap-2">
-        {mode === 'globe' && hasRoutes && (
-          <button
-            onClick={onToggleRoutes}
-            aria-label={showRoutes ? 'Hide routes' : 'Show routes'}
-            aria-pressed={showRoutes}
-            title={showRoutes ? 'Hide routes' : 'Show routes'}
-            className={`grid h-10 w-10 place-items-center rounded-full transition active:scale-90 ${
-              showRoutes ? 'border border-transparent bg-cream-50 text-night-950 shadow-lg' : glass
-            }`}
-          >
-            <RouteIcon size={18} />
-          </button>
-        )}
-        <button
-          onClick={onCycleTheme}
-          aria-label="Change theme"
-          className={`flex h-10 items-center gap-2 rounded-full pl-3 pr-3.5 text-[13px] font-medium tracking-tight active:scale-95 ${glass}`}
-        >
-          <Icon size={17} />
-          <span>{t.label}</span>
-          {override === 'auto' && (
-            <span className="rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider opacity-80">
-              Auto
-            </span>
+  // Tombol keluar dari posisi ⚙️: baris ke kiri & kolom ke bawah, bergiliran
+  const leftItem = (i: number) => ({
+    initial: { opacity: 0, x: 44 * (i + 1), scale: 0.6 },
+    animate: { opacity: 1, x: 0, scale: 1, transition: { ...springOut, delay: 0.03 * i } },
+    exit: { opacity: 0, x: 44 * (i + 1), scale: 0.6, transition: { duration: 0.16 } },
+  });
+  const downItem = (i: number) => ({
+    initial: { opacity: 0, y: -44 * (i + 1), scale: 0.6 },
+    animate: { opacity: 1, y: 0, scale: 1, transition: { ...springOut, delay: 0.03 * i } },
+    exit: { opacity: 0, y: -44 * (i + 1), scale: 0.6, transition: { duration: 0.16 } },
+  });
+
+  return (
+    <>
+      {/* tap di luar menu → tutup */}
+      {open && <div className="fixed inset-0 z-[29]" onClick={() => setOpen(false)} aria-hidden />}
+
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 px-4 pt-safe">
+        <AnimatePresence mode="wait" initial={false}>
+          {picking ? (
+            <span key="picking" />
+          ) : mode === 'map' ? (
+            <motion.button
+              key="back"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: open ? 0 : 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 }}
+              onClick={backToGlobe}
+              className={`pointer-events-auto flex h-10 items-center gap-2 rounded-full px-4 text-[13px] font-medium tracking-tight active:scale-95 ${glass}`}
+            >
+              <GlobeIcon size={17} /> Back to Globe
+            </motion.button>
+          ) : (
+            <motion.h1
+              key="title"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: open ? 0 : 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              className="pt-1.5 font-display text-2xl italic text-cream-50 drop-shadow"
+            >
+              Our Little World
+            </motion.h1>
           )}
-        </button>
-        <LockButton className={glass} />
-      </div>
-    </header>
+        </AnimatePresence>
+
+        <div className="pointer-events-auto relative">
+          {/* Baris ke kiri: rute + tema */}
+          <AnimatePresence>
+            {open && (
+              <div className="absolute right-12 top-0 flex items-center gap-2">
+                <motion.button
+                  key="routes"
+                  {...leftItem(1)}
+                  onClick={onToggleRoutes}
+                  aria-label={showRoutes ? 'Hide routes' : 'Show routes'}
+                  aria-pressed={showRoutes}
+                  className={`${circle} ${showRoutes ? on : glass}`}
+                >
+                  <RouteIcon size={18} />
+                </motion.button>
+                <motion.button
+                  key="theme"
+                  {...leftItem(0)}
+                  onClick={onCycleTheme}
+                  aria-label="Change theme"
+                  className={`flex h-10 items-center gap-2 whitespace-nowrap rounded-full pl-3 pr-3.5 text-[13px] font-medium tracking-tight active:scale-95 ${glass}`}
+                >
+                  <Icon size={17} />
+                  <span>{t.label}</span>
+                  {override === 'auto' && (
+                    <span className="rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider opacity-80">
+                      Auto
+                    </span>
+                  )}
+                </motion.button>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* ⚙️ */}
+          <motion.button
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Settings"
+            aria-expanded={open}
+            animate={{ rotate: open ? 90 : 0 }}
+            transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+            className={`relative z-10 ${circle} ${open ? on : glass}`}
+          >
+            <GearIcon size={19} />
+          </motion.button>
+
+          {/* Kolom ke bawah: mute, bumi berputar, lock */}
+          <AnimatePresence>
+            {open && (
+              <div className="absolute right-0 top-12 flex flex-col items-center gap-2">
+                <motion.button
+                  key="mute"
+                  {...downItem(0)}
+                  onClick={onToggleMute}
+                  aria-label={muted ? 'Unmute' : 'Mute'}
+                  aria-pressed={muted}
+                  className={`${circle} ${glass}`}
+                >
+                  {muted ? <MuteIcon size={18} /> : <VolumeIcon size={18} />}
+                </motion.button>
+                <motion.button
+                  key="rotate"
+                  {...downItem(1)}
+                  onClick={onToggleRotate}
+                  aria-label={autoRotate ? 'Stop globe rotation' : 'Rotate globe'}
+                  aria-pressed={autoRotate}
+                  className={`${circle} ${autoRotate ? on : glass}`}
+                >
+                  <RotateIcon size={19} />
+                </motion.button>
+                <motion.div key="lock" {...downItem(2)}>
+                  <LockButton className={glass} />
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </header>
+    </>
   );
 }
 

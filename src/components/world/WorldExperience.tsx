@@ -13,7 +13,7 @@ import { AddSpotFab, AlbumButton, GlobeHint, JourneyControls, PickOverlay, TopBa
 import AlbumSheet from '@/components/memory/AlbumSheet';
 import PolaroidModal from '@/components/memory/PolaroidModal';
 import AddSpotDrawer from '@/components/spot-form/AddSpotDrawer';
-import { sound } from '@/lib/sound';
+import { isMuted, setMuted, sound } from '@/lib/sound';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -69,6 +69,32 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
     sound.soft();
   }, [mode]);
 
+  // Opsi bumi berputar (default nyala) & mute (default suara nyala)
+  const [autoRotate, setAutoRotate] = useState(true);
+  const [muted, setMutedState] = useState(false);
+  useEffect(() => {
+    try {
+      setAutoRotate(localStorage.getItem('olw-rotate') !== '0');
+    } catch {
+      /* abaikan */
+    }
+    setMutedState(isMuted());
+  }, []);
+  const toggleRotate = () =>
+    setAutoRotate((v) => {
+      try {
+        localStorage.setItem('olw-rotate', v ? '0' : '1');
+      } catch {
+        /* abaikan */
+      }
+      return !v;
+    });
+  const toggleMute = () => {
+    const next = !isMuted();
+    setMuted(next);
+    setMutedState(next);
+  };
+
   // Leaflet baru di-mount saat pertama kali masuk peta, lalu dipertahankan
   const [mapMounted, setMapMounted] = useState(false);
   useEffect(() => {
@@ -99,7 +125,7 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
         style={{ pointerEvents: isGlobe ? 'auto' : 'none' }}
         aria-hidden={!isGlobe}
       >
-        <GlobeView cities={cities} arcs={arcs} journey={journey} theme={tokens} showRoutes={showRoutes} />
+        <GlobeView cities={cities} arcs={arcs} journey={journey} theme={tokens} showRoutes={showRoutes} autoRotate={autoRotate} />
       </motion.div>
 
       {/* Layer Peta 2D */}
@@ -122,7 +148,10 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
         onCycleTheme={cycle}
         showRoutes={showRoutes}
         onToggleRoutes={toggleRoutes}
-        hasRoutes={arcs.length > 0}
+        autoRotate={autoRotate}
+        onToggleRotate={toggleRotate}
+        muted={muted}
+        onToggleMute={toggleMute}
       />
       <GlobeHint empty={memories.length === 0} />
       <JourneyControls journey={journey} />
