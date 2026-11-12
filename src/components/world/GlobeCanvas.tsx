@@ -59,10 +59,12 @@ const fragmentShader = /* glsl */ `
     vec4 dayColor = texture2D(dayTexture, vUv);
     vec4 lights = texture2D(nightTexture, vUv);
     // Sisi malam tetap terang: daratan/laut versi "cahaya bulan" (kebiruan) + lampu kota menyala
-    vec3 moonlit = dayColor.rgb * vec3(0.42, 0.48, 0.66);
-    vec3 cityLights = lights.rgb * vec3(1.6, 1.35, 1.0);
-    vec4 nightColor = vec4(moonlit + cityLights, 1.0);
-    float blendFactor = smoothstep(-0.15, 0.15, intensity);
+    // Hampir seterang siang, sedikit kebiruan, plus lampu kota bersinar keemasan
+    vec3 moonlit = dayColor.rgb * vec3(0.78, 0.84, 1.0) + vec3(0.03, 0.04, 0.08);
+    float glow = smoothstep(0.08, 0.6, max(max(lights.r, lights.g), lights.b));
+    vec3 cityLights = lights.rgb * vec3(2.4, 1.9, 1.2) + vec3(1.0, 0.78, 0.45) * glow * 0.35;
+    vec4 nightColor = vec4(min(moonlit + cityLights, vec3(1.0)), 1.0);
+    float blendFactor = smoothstep(-0.2, 0.2, intensity);
     gl_FragColor = mix(nightColor, dayColor, blendFactor);
   }
 `;
