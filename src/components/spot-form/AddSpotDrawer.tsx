@@ -201,7 +201,7 @@ export default function AddSpotDrawer() {
       {visible && draft && (
         <motion.div
           key="drawer"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/55 md:items-center md:p-6"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/40 backdrop-blur-[6px] md:items-center md:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, pointerEvents: 'none' }}
@@ -213,9 +213,8 @@ export default function AddSpotDrawer() {
             onClick={(e) => e.stopPropagation()}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
-            exit={{ y: '100%', transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } }}
+            exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 34, stiffness: 320, mass: 0.9 }}
-            style={{ willChange: 'transform' }}
             drag="y"
             dragControls={dragControls}
             dragListener={false}

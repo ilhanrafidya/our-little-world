@@ -329,10 +329,10 @@ export function AddSpotFab() {
       {!hidden && (
         <motion.button
           key="fab"
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1, transition: { delay: 0.28, duration: 0.32, ease: [0.22, 1, 0.36, 1] } }}
-          exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.15 } }}
-          style={{ willChange: 'transform, opacity' }}
+          initial={{ scale: 0, rotate: -90 }}
+          animate={{ scale: 1, rotate: 0 }}
+          exit={{ scale: 0, rotate: 90 }}
+          transition={{ type: 'spring', damping: 18, stiffness: 260 }}
           onClick={openCreate}
           aria-label="Add memory"
           className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-night-950 shadow-xl shadow-black/35 transition active:scale-90"
@@ -358,10 +358,10 @@ export function AlbumButton() {
       {!hidden && (
         <motion.button
           key="album-btn"
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1, transition: { delay: 0.28, duration: 0.32, ease: [0.22, 1, 0.36, 1] } }}
-          exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.15 } }}
-          style={{ willChange: 'transform, opacity' }}
+          initial={{ scale: 0, rotate: 90 }}
+          animate={{ scale: 1, rotate: 0 }}
+          exit={{ scale: 0, rotate: -90 }}
+          transition={{ type: 'spring', damping: 18, stiffness: 260 }}
           onClick={() => setOpen(true)}
           aria-label="Open album"
           className={`fixed bottom-[max(env(safe-area-inset-bottom),1rem)] left-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full transition active:scale-90 ${glass}`}
