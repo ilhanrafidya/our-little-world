@@ -56,7 +56,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
       {open && memory && (
         <motion.div
           key="polaroid-backdrop"
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 px-6 backdrop-blur-sm"
+          className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-5 overflow-y-auto bg-black/45 px-6 py-10 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -159,11 +159,6 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                   )}
                 </div>
 
-                {memory.spotifyUrl && (
-                  <div className="mt-3">
-                    <SpotifyEmbed url={memory.spotifyUrl} />
-                  </div>
-                )}
 
                 {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 
@@ -218,6 +213,22 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
               <XIcon size={16} />
             </button>
           </motion.div>
+
+          {/* Pemutar Spotify di LUAR kartu 3D: Safari iOS tidak meneruskan tap ke iframe
+              di dalam elemen yang diputar rotateY, sehingga tombol play tidak berfungsi. */}
+          {memory.spotifyUrl && (
+            <motion.div
+              key={`song-${memory.id}`}
+              className="w-[min(86vw,360px)]"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ delay: 0.15, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <SpotifyEmbed url={memory.spotifyUrl} />
+            </motion.div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
