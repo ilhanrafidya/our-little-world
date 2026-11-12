@@ -14,11 +14,11 @@ export default async function WorldPage() {
     const missingTable = err instanceof Error && /memories_api|relation/.test(err.message);
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="font-display text-2xl italic">Dunia kita belum bisa dimuat</p>
+        <p className="font-display text-2xl italic">Our world couldn’t load</p>
         <p className="max-w-sm text-sm text-cream-50/70">
           {missingTable
-            ? 'Tabel database belum ada. Jalankan db/schema.sql di Neon SQL Editor.'
-            : 'Database belum terhubung. Coba muat ulang sebentar lagi.'}
+            ? 'Database tables are missing. Run db/schema.sql in the Neon SQL Editor.'
+            : 'Database not connected yet. Try again in a moment.'}
         </p>
         <LockButton />
       </main>

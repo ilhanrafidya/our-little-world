@@ -9,7 +9,7 @@ export default function SpotifyEmbed({ url }: { url: string }) {
   return (
     <div className="space-y-1.5">
       <iframe
-        title="Lagu kenangan"
+        title="Our song"
         src={src}
         width="100%"
         height="80"
@@ -23,7 +23,7 @@ export default function SpotifyEmbed({ url }: { url: string }) {
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 text-xs font-medium text-[#1a7f45] underline-offset-2 hover:underline"
       >
-        Buka lagu lengkap di Spotify →
+        Open full song in Spotify →
       </a>
     </div>
   );

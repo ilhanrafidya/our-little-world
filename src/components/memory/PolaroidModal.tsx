@@ -45,7 +45,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
       await apiDeleteMemory(memory.id);
       removeMemory(memory.id);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Gagal menghapus.');
+      setError(err instanceof ApiError ? err.message : 'Could not delete.');
     } finally {
       setDeleting(false);
     }
@@ -87,7 +87,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                   type="button"
                   onClick={() => setFlipped(true)}
                   className="block w-full overflow-hidden bg-night-800"
-                  aria-label="Balik kartu untuk membaca cerita"
+                  aria-label="Flip to read the story"
                 >
                   {memory.photo ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -111,7 +111,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                       <PinIcon size={14} className="shrink-0" />
                       <span className="truncate">{memory.city}</span>
                     </span>
-                    <span className="shrink-0">{memory.memoryDate ? formatDate(memory.memoryDate) : 'suatu hari nanti'}</span>
+                    <span className="shrink-0">{memory.memoryDate ? formatDate(memory.memoryDate) : 'someday'}</span>
                   </p>
                 </div>
                 <button
@@ -119,7 +119,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                   onClick={() => setFlipped(true)}
                   className="mt-3 flex w-full items-center justify-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-night-950/35"
                 >
-                  <FlipIcon size={13} /> Balik kartu
+                  <FlipIcon size={13} /> Flip card
                 </button>
               </div>
 
@@ -147,7 +147,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                     onClick={() => setFlipped(false)}
                     className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.14em] text-night-950/40"
                   >
-                    <FlipIcon size={13} /> Foto
+                    <FlipIcon size={13} /> Photo
                   </button>
                 </div>
 
@@ -155,7 +155,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                   {memory.story ? (
                     <p className="whitespace-pre-line font-hand text-[1.45rem] leading-[28px]">{memory.story}</p>
                   ) : (
-                    <p className="font-hand text-xl text-night-950/40">Belum ada cerita. Tulis lewat tombol Edit.</p>
+                    <p className="font-hand text-xl text-night-950/40">No story yet. Add one with Edit.</p>
                   )}
                 </div>
 
@@ -176,14 +176,14 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                         disabled={deleting}
                         className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-medium text-white active:scale-95 disabled:opacity-50"
                       >
-                        {deleting ? 'Menghapus…' : 'Ya, hapus'}
+                        {deleting ? 'Deleting…' : 'Yes, delete'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDelete(false)}
                         className="flex-1 rounded-xl bg-night-950/10 py-2.5 text-sm active:scale-95"
                       >
-                        Batal
+                        Cancel
                       </button>
                     </>
                   ) : (
@@ -199,7 +199,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                         type="button"
                         onClick={() => setConfirmDelete(true)}
                         className="grid place-items-center rounded-xl bg-night-950/[0.07] px-4 py-2.5 text-night-950/70 transition active:scale-95"
-                        aria-label="Hapus kenangan"
+                        aria-label="Delete memory"
                       >
                         <TrashIcon size={17} />
                       </button>
@@ -212,7 +212,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
             <button
               type="button"
               onClick={() => select(null)}
-              aria-label="Tutup"
+              aria-label="Close"
               className="absolute -right-3 -top-3 flex h-9 w-9 items-center justify-center rounded-full bg-night-950 text-cream-50 shadow-lg active:scale-90"
             >
               <XIcon size={16} />

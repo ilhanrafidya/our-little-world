@@ -17,9 +17,9 @@ const errCls = 'mt-1.5 text-xs text-[#d6336c]';
 type Stage = 'idle' | 'compress' | 'upload' | 'save';
 const STAGE_LABEL: Record<Stage, string> = {
   idle: '',
-  compress: 'Menyiapkan foto…',
-  upload: 'Mengunggah foto…',
-  save: 'Menyimpan…',
+  compress: 'Preparing photo…',
+  upload: 'Uploading photo…',
+  save: 'Saving…',
 };
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -76,7 +76,7 @@ export default function AddSpotDrawer() {
         if (latest && !latest.city.trim() && city) updateDraft({ city, country: latest.country || country || '' });
       }
     } catch (err) {
-      setLocError(err instanceof Error ? err.message : 'Lokasi tidak ditemukan.');
+      setLocError(err instanceof Error ? err.message : 'Location not found.');
     } finally {
       setLocating(false);
     }
@@ -103,11 +103,11 @@ export default function AddSpotDrawer() {
     setFieldErrors([]);
 
     const local: FieldError[] = [];
-    if (!draft.title.trim()) local.push({ field: 'title', message: 'Judul tempat wajib diisi' });
-    if (!draft.city.trim()) local.push({ field: 'city', message: 'Nama kota wajib diisi' });
-    if (draft.lat == null || draft.lng == null) local.push({ field: 'location', message: 'Tentukan lokasinya dulu' });
+    if (!draft.title.trim()) local.push({ field: 'title', message: 'Please add a place name' });
+    if (!draft.city.trim()) local.push({ field: 'city', message: 'Please add a city' });
+    if (draft.lat == null || draft.lng == null) local.push({ field: 'location', message: 'Set a location first' });
     if (draft.spotifyUrl.trim() && !parseSpotifyTrackId(draft.spotifyUrl))
-      local.push({ field: 'spotifyUrl', message: 'Gunakan link lagu: Share → Copy Song Link' });
+      local.push({ field: 'spotifyUrl', message: 'Use a song link: Share → Copy Song Link' });
     if (local.length) {
       setFieldErrors(local);
       return;
@@ -144,7 +144,7 @@ export default function AddSpotDrawer() {
         setError(err.message);
         setFieldErrors(err.fields);
       } else {
-        setError(err instanceof Error ? err.message : 'Gagal menyimpan.');
+        setError(err instanceof Error ? err.message : 'Could not save.');
       }
     } finally {
       setStage('idle');
@@ -190,7 +190,7 @@ export default function AddSpotDrawer() {
                     {isEdit ? 'Edit' : 'New memory'}
                   </p>
                   <h2 className="mt-1 text-[22px] font-semibold tracking-tight">
-                    {isEdit ? 'Perbarui kenangan' : 'Simpan satu tempat'}
+                    {isEdit ? 'Update this memory' : 'Save a place'}
                   </h2>
                 </div>
                 <button
@@ -198,7 +198,7 @@ export default function AddSpotDrawer() {
                   onClick={close}
                   disabled={busy}
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-night-950/[0.06] text-night-950/60 transition active:scale-90"
-                  aria-label="Tutup"
+                  aria-label="Close"
                 >
                   <XIcon size={16} />
                 </button>
@@ -227,14 +227,14 @@ export default function AddSpotDrawer() {
                           onClick={() => fileRef.current?.click()}
                           className="rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-medium text-night-950 backdrop-blur transition active:scale-95"
                         >
-                          Ganti
+                          Change
                         </button>
                         <button
                           type="button"
                           onClick={removePhoto}
                           className="rounded-full bg-black/45 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition active:scale-95"
                         >
-                          Hapus
+                          Remove
                         </button>
                       </div>
                     </motion.div>
@@ -251,7 +251,7 @@ export default function AddSpotDrawer() {
                       <span className="grid h-12 w-12 place-items-center rounded-full bg-night-950/[0.05]">
                         <CameraIcon size={22} />
                       </span>
-                      <span className="text-sm font-medium">Tambahkan foto</span>
+                      <span className="text-sm font-medium">Add a photo</span>
                     </motion.button>
                   )}
                 </AnimatePresence>
@@ -293,14 +293,14 @@ export default function AddSpotDrawer() {
               <section className="space-y-4">
                 <div>
                   <label className={labelCls} htmlFor="title">
-                    Nama tempat
+                    Place
                   </label>
                   <input
                     id="title"
                     className={field}
                     value={draft.title}
                     maxLength={120}
-                    placeholder="Kafe di ujung jalan"
+                    placeholder="The café on the corner"
                     onChange={(e) => set('title', e.target.value)}
                   />
                   {fe('title') && <p className={errCls}>{fe('title')}</p>}
@@ -309,7 +309,7 @@ export default function AddSpotDrawer() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelCls} htmlFor="city">
-                      Kota
+                      City
                     </label>
                     <input
                       id="city"
@@ -323,7 +323,7 @@ export default function AddSpotDrawer() {
                   </div>
                   <div>
                     <label className={labelCls} htmlFor="date">
-                      Tanggal
+                      Date
                     </label>
                     <input
                       id="date"
@@ -338,7 +338,7 @@ export default function AddSpotDrawer() {
 
               {/* Lokasi */}
               <section>
-                <span className={labelCls}>Lokasi</span>
+                <span className={labelCls}>Location</span>
                 <div className="overflow-hidden rounded-2xl border border-night-950/[0.08] bg-white">
                   <div className="grid grid-cols-2 divide-x divide-night-950/[0.08]">
                     <button
@@ -347,14 +347,14 @@ export default function AddSpotDrawer() {
                       disabled={locating}
                       className="flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition active:bg-night-950/[0.04] disabled:opacity-50"
                     >
-                      <PinIcon size={17} /> {locating ? 'Mencari…' : 'Lokasi saat ini'}
+                      <PinIcon size={17} /> {locating ? 'Locating…' : 'Current location'}
                     </button>
                     <button
                       type="button"
                       onClick={startPicking}
                       className="flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition active:bg-night-950/[0.04]"
                     >
-                      <MapIcon size={17} /> Pilih di peta
+                      <MapIcon size={17} /> Pick on map
                     </button>
                   </div>
                   <div className="border-t border-night-950/[0.08] px-4 py-2.5 text-xs tabular-nums text-night-950/50">
@@ -364,7 +364,7 @@ export default function AddSpotDrawer() {
                         {draft.lat.toFixed(5)}, {draft.lng.toFixed(5)}
                       </span>
                     ) : (
-                      'Belum ada titik lokasi'
+                      'No location yet'
                     )}
                   </div>
                 </div>
@@ -375,7 +375,7 @@ export default function AddSpotDrawer() {
               <section className="space-y-4">
                 <div>
                   <label className={labelCls} htmlFor="story">
-                    Cerita
+                    Story
                   </label>
                   <textarea
                     id="story"
@@ -383,13 +383,13 @@ export default function AddSpotDrawer() {
                     maxLength={5000}
                     className={`${field} resize-none leading-relaxed`}
                     value={draft.story}
-                    placeholder="Apa yang paling kalian ingat dari tempat ini?"
+                    placeholder="What do you remember most about this place?"
                     onChange={(e) => set('story', e.target.value)}
                   />
                 </div>
                 <div>
                   <label className={labelCls} htmlFor="spotify">
-                    Lagu Spotify <span className="normal-case tracking-normal text-night-950/30">— opsional</span>
+                    Spotify song <span className="normal-case tracking-normal text-night-950/30">— optional</span>
                   </label>
                   <input
                     id="spotify"
@@ -434,7 +434,7 @@ export default function AddSpotDrawer() {
                   />
                 )}
                 <span className="relative">
-                  {busy ? STAGE_LABEL[stage] : isEdit ? 'Simpan perubahan' : 'Simpan kenangan'}
+                  {busy ? STAGE_LABEL[stage] : isEdit ? 'Save changes' : 'Save memory'}
                 </span>
               </button>
             </div>

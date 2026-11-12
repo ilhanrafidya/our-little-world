@@ -1,4 +1,4 @@
-const fmt = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 /** 'YYYY-MM-DD' → '14 Feb 2024' */
 export function formatDate(iso: string | null | undefined): string {

@@ -12,7 +12,7 @@ const emptyToNull = (v: unknown) => {
 };
 
 const nullableText = (max: number, label: string) =>
-  z.preprocess(emptyToNull, z.string().max(max, `${label} maksimal ${max} karakter`).nullable().optional());
+  z.preprocess(emptyToNull, z.string().max(max, `${label} is too long (max ${max})`).nullable().optional());
 
 const isBlobUrl = (u: string) => {
   try {
@@ -24,7 +24,7 @@ const isBlobUrl = (u: string) => {
 };
 
 export const photoSchema = z.object({
-  url: z.url().refine(isBlobUrl, 'Foto harus berasal dari Vercel Blob'),
+  url: z.url().refine(isBlobUrl, 'Photo must come from Vercel Blob'),
   pathname: z.string().startsWith(BLOB_PATH_PREFIX).max(300),
   width: z.int().positive().max(10_000),
   height: z.int().positive().max(10_000),
@@ -38,7 +38,7 @@ const spotifySchema = z
     if (!normalized) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Link Spotify harus link lagu (open.spotify.com/track/…). Di Spotify: Share → Copy Song Link.',
+        message: 'Use a Spotify song link (open.spotify.com/track/…). In Spotify: Share → Copy Song Link.',
       });
       return z.NEVER;
     }
@@ -46,14 +46,14 @@ const spotifySchema = z
   });
 
 const memoryFields = {
-  title: z.string().trim().min(1, 'Judul tempat wajib diisi').max(120, 'Judul maksimal 120 karakter'),
-  city: z.string().trim().min(1, 'Nama kota wajib diisi').max(80, 'Nama kota maksimal 80 karakter'),
-  country: nullableText(80, 'Negara'),
+  title: z.string().trim().min(1, 'Please add a place name').max(120, 'Place name is too long (max 120)'),
+  city: z.string().trim().min(1, 'Please add a city').max(80, 'City name is too long (max 80)'),
+  country: nullableText(80, 'Country'),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   status: z.enum(['visited', 'wishlist']),
-  memoryDate: z.preprocess(emptyToNull, z.iso.date('Format tanggal harus YYYY-MM-DD').nullable().optional()),
-  story: nullableText(5000, 'Cerita'),
+  memoryDate: z.preprocess(emptyToNull, z.iso.date('Date must be YYYY-MM-DD').nullable().optional()),
+  story: nullableText(5000, 'Story'),
   spotifyUrl: spotifySchema,
   photo: photoSchema.nullable().optional(),
 };

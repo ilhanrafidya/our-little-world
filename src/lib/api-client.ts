@@ -24,14 +24,14 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } });
   } catch {
-    throw new ApiError('Tidak ada koneksi internet. Coba lagi.', 0);
+    throw new ApiError('No internet connection. Try again.', 0);
   }
   const data = (await res.json().catch(() => ({}))) as { error?: string; details?: FieldError[] } & T;
   if (res.status === 401) {
     window.location.href = '/unlock';
-    throw new ApiError('Sesi berakhir, silakan unlock lagi.', 401);
+    throw new ApiError('Session expired. Please unlock again.', 401);
   }
-  if (!res.ok) throw new ApiError(data.error ?? 'Terjadi kesalahan.', res.status, data.details ?? []);
+  if (!res.ok) throw new ApiError(data.error ?? 'Something went wrong.', res.status, data.details ?? []);
   return data;
 }
 
@@ -89,7 +89,7 @@ export async function uploadPhoto(file: File, onStage?: (stage: 'compress' | 'up
   } catch (err) {
     const msg = err instanceof Error ? err.message : '';
     throw new ApiError(
-      /401|Sesi/i.test(msg) ? 'Sesi berakhir, silakan unlock lagi.' : 'Upload foto gagal. Cek koneksi lalu coba lagi.',
+      /401|session/i.test(msg) ? 'Session expired. Please unlock again.' : 'Photo upload failed. Check your connection and try again.',
       0,
     );
   }

@@ -15,7 +15,7 @@ export async function hasValidSession(): Promise<boolean> {
  */
 export async function requireApiSession() {
   if (await hasValidSession()) return null;
-  return jsonError(401, 'Sesi tidak valid. Silakan masukkan passcode lagi.');
+  return jsonError(401, 'Session expired. Please unlock again.');
 }
 
 /** Untuk Server Component halaman (lapisan kedua setelah proxy.ts). */

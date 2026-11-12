@@ -23,7 +23,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('Format foto tidak didukung browser ini. Coba pilih foto JPG/PNG.'));
+      reject(new Error('This photo format isn’t supported here. Try a JPG or PNG.'));
     };
     img.src = url;
   });
@@ -35,7 +35,7 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promi
 
 export async function compressImage(file: File, maxSize = 1200): Promise<CompressedImage> {
   if (!file.type.startsWith('image/') && file.type !== '') {
-    throw new Error('File yang dipilih bukan foto.');
+    throw new Error('That file isn’t a photo.');
   }
 
   let source: ImageBitmap | HTMLImageElement;
@@ -55,7 +55,7 @@ export async function compressImage(file: File, maxSize = 1200): Promise<Compres
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Browser tidak mendukung pemrosesan foto.');
+  if (!ctx) throw new Error('This browser can’t process photos.');
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(source, 0, 0, width, height);
   if ('close' in source) source.close();
@@ -65,6 +65,6 @@ export async function compressImage(file: File, maxSize = 1200): Promise<Compres
     return { blob: webp, width, height, type: 'image/webp', ext: 'webp' };
   }
   const jpeg = await toBlob(canvas, 'image/jpeg', 0.84);
-  if (!jpeg) throw new Error('Gagal memproses foto.');
+  if (!jpeg) throw new Error('Could not process the photo.');
   return { blob: jpeg, width, height, type: 'image/jpeg', ext: 'jpg' };
 }

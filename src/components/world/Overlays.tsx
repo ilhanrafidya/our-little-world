@@ -177,7 +177,7 @@ export function AddSpotFab() {
           exit={{ scale: 0, rotate: 90 }}
           transition={{ type: 'spring', damping: 18, stiffness: 260 }}
           onClick={openCreate}
-          aria-label="Tambah kenangan"
+          aria-label="Add memory"
           className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-night-950 shadow-xl shadow-black/35 transition active:scale-90"
         >
           <PlusIcon size={26} strokeWidth={2.2} />
@@ -211,7 +211,7 @@ export function PickOverlay() {
       {picking && (
         <motion.div key="pick" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none fixed inset-0 z-40">
           <p className={`absolute inset-x-4 top-[calc(env(safe-area-inset-top)+1rem)] mx-auto max-w-sm rounded-2xl px-4 py-3 text-center text-[13px] font-medium tracking-tight ${glass}`}>
-            Geser peta sampai pin tepat di lokasi kenangan
+            Move the map until the pin sits on the spot
           </p>
           {/* Pin di tengah layar — ujungnya menunjuk titik tengah peta */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
@@ -224,13 +224,13 @@ export function PickOverlay() {
           <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-night-950/60" />
           <div className="pointer-events-auto absolute inset-x-0 bottom-0 flex justify-center gap-2 px-4 pb-safe">
             <button onClick={cancelPicking} className={`mb-2 h-14 rounded-2xl px-5 text-[15px] font-medium tracking-tight active:scale-95 ${glass}`}>
-              Batal
+              Cancel
             </button>
             <button
               onClick={confirm}
               className="mb-2 h-14 max-w-xs flex-1 rounded-2xl bg-cream-50 px-5 text-[15px] font-medium tracking-tight text-night-950 shadow-lg active:scale-95"
             >
-              Pakai titik ini
+              Use this spot
             </button>
           </div>
         </motion.div>

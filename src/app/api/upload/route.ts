@@ -19,7 +19,7 @@ const MAX_BYTES = 3 * 1024 * 1024; // hasil kompresi 1200px biasanya 150–500 K
 
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await readJson(request)) as HandleUploadBody | undefined;
-  if (!body) return jsonError(400, 'Body tidak valid.');
+  if (!body) return jsonError(400, 'Invalid request body.');
 
   try {
     const jsonResponse = await handleUpload({
@@ -27,7 +27,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       request,
       onBeforeGenerateToken: async (pathname) => {
         if (!(await hasValidSession())) throw new Error('UNAUTHORIZED');
-        if (!PATH_RE.test(pathname)) throw new Error('Nama file tidak valid.');
+        if (!PATH_RE.test(pathname)) throw new Error('Invalid file name.');
 
         return {
           allowedContentTypes: ['image/webp', 'image/jpeg'],
@@ -44,8 +44,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
     return NextResponse.json(jsonResponse);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Upload gagal.';
-    if (message === 'UNAUTHORIZED') return jsonError(401, 'Sesi tidak valid. Silakan unlock lagi.');
+    const message = err instanceof Error ? err.message : 'Upload failed.';
+    if (message === 'UNAUTHORIZED') return jsonError(401, 'Session expired. Please unlock again.');
     return jsonError(400, message);
   }
 }

@@ -20,14 +20,14 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
   if (denied) return denied;
 
   const id = await parseId(ctx);
-  if (!id) return jsonError(400, 'ID tidak valid.');
+  if (!id) return jsonError(400, 'Invalid ID.');
 
   try {
     const memory = await getMemory(id);
-    return memory ? jsonOk({ memory }) : jsonError(404, 'Kenangan tidak ditemukan.');
+    return memory ? jsonOk({ memory }) : jsonError(404, 'Memory not found.');
   } catch (err) {
     console.error('[memories:get]', err);
-    return jsonError(500, 'Gagal memuat kenangan.');
+    return jsonError(500, 'Could not load the memory.');
   }
 }
 
@@ -37,18 +37,18 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
   if (denied) return denied;
 
   const id = await parseId(ctx);
-  if (!id) return jsonError(400, 'ID tidak valid.');
+  if (!id) return jsonError(400, 'Invalid ID.');
 
   const body = await readJson(request);
-  if (body === undefined) return jsonError(400, 'Body JSON tidak valid.');
+  if (body === undefined) return jsonError(400, 'Invalid JSON body.');
 
   const parsed = updateMemorySchema.safeParse(body);
-  if (!parsed.success) return jsonError(422, 'Data belum valid.', formatIssues(parsed.error));
-  if (Object.keys(parsed.data).length === 0) return jsonError(400, 'Tidak ada perubahan.');
+  if (!parsed.success) return jsonError(422, 'Some fields are invalid.', formatIssues(parsed.error));
+  if (Object.keys(parsed.data).length === 0) return jsonError(400, 'Nothing to update.');
 
   try {
     const result = await updateMemory(id, parsed.data);
-    if (!result) return jsonError(404, 'Kenangan tidak ditemukan.');
+    if (!result) return jsonError(404, 'Memory not found.');
 
     // Foto diganti/dihapus → hapus file lama setelah response terkirim
     if (result.oldPhotoUrl) {
@@ -58,7 +58,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
     return jsonOk({ memory: result.memory });
   } catch (err) {
     console.error('[memories:update]', err);
-    return jsonError(500, 'Gagal menyimpan perubahan.');
+    return jsonError(500, 'Could not save changes.');
   }
 }
 
@@ -68,11 +68,11 @@ export async function DELETE(_request: NextRequest, ctx: Ctx) {
   if (denied) return denied;
 
   const id = await parseId(ctx);
-  if (!id) return jsonError(400, 'ID tidak valid.');
+  if (!id) return jsonError(400, 'Invalid ID.');
 
   try {
     const result = await deleteMemory(id);
-    if (!result) return jsonError(404, 'Kenangan tidak ditemukan.');
+    if (!result) return jsonError(404, 'Memory not found.');
 
     if (result.photoUrl) {
       const url = result.photoUrl;
@@ -81,6 +81,6 @@ export async function DELETE(_request: NextRequest, ctx: Ctx) {
     return jsonOk({ ok: true, id });
   } catch (err) {
     console.error('[memories:delete]', err);
-    return jsonError(500, 'Gagal menghapus kenangan.');
+    return jsonError(500, 'Could not delete the memory.');
   }
 }

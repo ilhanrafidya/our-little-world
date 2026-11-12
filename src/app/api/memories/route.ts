@@ -15,7 +15,7 @@ export async function GET() {
     return jsonOk({ memories });
   } catch (err) {
     console.error('[memories:list]', err);
-    return jsonError(500, 'Gagal memuat kenangan.');
+    return jsonError(500, 'Could not load memories.');
   }
 }
 
@@ -25,10 +25,10 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
 
   const body = await readJson(request);
-  if (body === undefined) return jsonError(400, 'Body JSON tidak valid.');
+  if (body === undefined) return jsonError(400, 'Invalid JSON body.');
 
   const parsed = createMemorySchema.safeParse(body);
-  if (!parsed.success) return jsonError(422, 'Data belum lengkap/valid.', formatIssues(parsed.error));
+  if (!parsed.success) return jsonError(422, 'Some fields are missing or invalid.', formatIssues(parsed.error));
 
   try {
     const memory = await createMemory(parsed.data);
@@ -38,6 +38,6 @@ export async function POST(request: NextRequest) {
     // Foto sudah terlanjur di-upload tapi data gagal disimpan → bersihkan agar tidak jadi file yatim
     const orphan = parsed.data.photo?.url;
     if (orphan) after(() => deleteBlobSafe(orphan));
-    return jsonError(500, 'Gagal menyimpan kenangan.');
+    return jsonError(500, 'Could not save the memory.');
   }
 }

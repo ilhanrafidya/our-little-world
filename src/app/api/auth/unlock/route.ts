@@ -12,30 +12,30 @@ export async function POST(request: NextRequest) {
 
   const lock = checkLock(ip);
   if (lock.locked) {
-    return jsonError(429, `Terlalu banyak percobaan. Coba lagi dalam ${lock.retryAfter} detik.`, undefined, {
+    return jsonError(429, `Too many attempts. Try again in ${lock.retryAfter}s.`, undefined, {
       'Retry-After': String(lock.retryAfter),
     });
   }
 
   const parsed = bodySchema.safeParse(await readJson(request));
-  if (!parsed.success) return jsonError(400, 'Passcode wajib diisi.');
+  if (!parsed.success) return jsonError(400, 'Password is required.');
 
   let ok: boolean;
   try {
     ok = await passcodeMatches(parsed.data.passcode);
   } catch (err) {
     console.error('[auth] konfigurasi passcode bermasalah', err);
-    return jsonError(500, 'Server belum dikonfigurasi (APP_PASSCODE / SESSION_SECRET).');
+    return jsonError(500, 'Server not configured (APP_PASSCODE / SESSION_SECRET).');
   }
 
   if (!ok) {
     const retryAfter = registerFail(ip);
     await sleep(600); // perlambat brute force
     return retryAfter > 0
-      ? jsonError(429, `Kode salah. Tunggu ${retryAfter} detik sebelum mencoba lagi.`, undefined, {
+      ? jsonError(429, `Wrong password. Wait ${retryAfter}s before trying again.`, undefined, {
           'Retry-After': String(retryAfter),
         })
-      : jsonError(401, 'Kode salah, coba lagi ya.');
+      : jsonError(401, 'Wrong password.');
   }
 
   registerSuccess(ip);
@@ -47,6 +47,6 @@ export async function POST(request: NextRequest) {
     return res;
   } catch (err) {
     console.error('[auth] gagal membuat sesi', err);
-    return jsonError(500, 'Server belum dikonfigurasi (SESSION_SECRET).');
+    return jsonError(500, 'Server not configured (SESSION_SECRET).');
   }
 }
