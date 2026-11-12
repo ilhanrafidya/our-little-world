@@ -67,6 +67,9 @@ body {
 /* ── Peta 2D (Leaflet) ─────────────────────────────────────── */
 .olw-map {
   background: #e9e4dc;
+  /* Panes Leaflet ber-z-index 400–1000: kurung di dalam peta agar tidak menutupi tombol UI */
+  isolation: isolate;
+  z-index: 0;
 }
 .olw-map--dark {
   background: #0e0e1a;

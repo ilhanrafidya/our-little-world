@@ -52,7 +52,8 @@ export default function AddSpotDrawer() {
   }
 
   function close() {
-    if (busy) return;
+    // Jangan tutup saat sedang memilih titik di peta (sisa animasi keluar bisa menangkap tap)
+    if (busy || useWorld.getState().editor.picking) return;
     setError(null);
     setFieldErrors([]);
     setLocError(null);
@@ -158,7 +159,7 @@ export default function AddSpotDrawer() {
           className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/40 backdrop-blur-[6px] md:items-center md:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          exit={{ opacity: 0, pointerEvents: 'none' }}
           transition={{ duration: 0.3 }}
           onClick={close}
         >

@@ -54,14 +54,14 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
   const isGlobe = mode === 'globe';
 
   return (
-    <main className="fixed inset-0 overflow-hidden text-cream-50" style={cssVars} data-phase={phase}>
+    <main className="fixed left-0 top-0 h-lvh w-full overflow-hidden text-cream-50" style={cssVars} data-phase={phase}>
       {/* Langit (berganti sesuai jam) */}
       <div className="absolute inset-0 transition-[background] duration-1000" style={{ background: tokens.sky }} />
       <Starfield opacity={tokens.stars} />
 
       {/* Layer Globe 3D — tetap ter-mount agar WebGL tidak dibuat ulang (penting di iOS) */}
       <motion.div
-        className="absolute inset-0"
+        className="absolute inset-0 isolate z-0"
         initial={false}
         animate={{ opacity: isGlobe ? 1 : 0, scale: isGlobe ? 1 : 1.3 }}
         transition={{ duration: 0.7, ease: EASE }}
@@ -74,7 +74,7 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
       {/* Layer Peta 2D */}
       {mapMounted && (
         <motion.div
-          className="absolute inset-0"
+          className="absolute inset-0 isolate z-[1]"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: isGlobe ? 0 : 1, scale: isGlobe ? 0.9 : 1 }}
           transition={{ duration: 0.7, ease: EASE }}
