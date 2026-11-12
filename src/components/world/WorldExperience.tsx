@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import type { Memory } from '@/types/memory';
 import { buildArcs, buildJourney, groupByCity } from '@/lib/geo';
@@ -12,6 +12,7 @@ import { useTimeTheme } from './useTimeTheme';
 import { AddSpotFab, GlobeHint, JourneyControls, PickOverlay, TopBar } from './Overlays';
 import PolaroidModal from '@/components/memory/PolaroidModal';
 import AddSpotDrawer from '@/components/spot-form/AddSpotDrawer';
+import { sound } from '@/lib/sound';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -56,6 +57,16 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
       }
       return !v;
     });
+
+  // Suara transisi globe ⇄ peta
+  const firstMode = useRef(true);
+  useEffect(() => {
+    if (firstMode.current) {
+      firstMode.current = false;
+      return;
+    }
+    sound.soft();
+  }, [mode]);
 
   // Leaflet baru di-mount saat pertama kali masuk peta, lalu dipertahankan
   const [mapMounted, setMapMounted] = useState(false);

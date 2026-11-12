@@ -8,6 +8,7 @@ import { subsolarPoint } from '@/lib/sun';
 import type { ThemeTokens } from '@/lib/theme';
 import { useWorld } from '@/store/world-store';
 import { runJourney } from './journeyEngine';
+import { sound } from '@/lib/sound';
 
 /**
  * Implementasi Globe 3D. HANYA di-load di browser lewat GlobeView (dynamic, ssr:false)
@@ -317,6 +318,7 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes }
         updateMarkers(pov);
       },
       onArrive: (city) => {
+        sound.arrive();
         setBurst(city);
         clearTimeout(burstTimer);
         burstTimer = setTimeout(() => setBurst(null), 2200);

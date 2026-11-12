@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Memory } from '@/types/memory';
 import { formatDate } from '@/lib/format';
 import { apiDeleteMemory, ApiError } from '@/lib/api-client';
 import { useWorld } from '@/store/world-store';
 import SpotifyEmbed from './SpotifyEmbed';
+import { sound } from '@/lib/sound';
 import { FlipIcon, HeartIcon, PencilIcon, PinIcon, StarIcon, TrashIcon, XIcon } from '@/components/ui/icons';
 
 /** Kemiringan acak tapi stabil per kenangan (seperti foto ditempel di dinding). */
@@ -33,6 +34,19 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
     setConfirmDelete(false);
     setError(null);
   }, [memory?.id]);
+
+  // Suara kertas saat kartu muncul & saat dibalik
+  useEffect(() => {
+    if (memory && mode === 'map') sound.swish();
+  }, [memory?.id, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  const firstFlip = useRef(true);
+  useEffect(() => {
+    if (firstFlip.current) {
+      firstFlip.current = false;
+      return;
+    }
+    sound.swish();
+  }, [flipped]);
 
   const tilt = useMemo(() => (memory ? tiltFor(memory.id) : 0), [memory]);
   const open = !!memory && mode === 'map';

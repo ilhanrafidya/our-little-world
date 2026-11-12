@@ -17,6 +17,7 @@ import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import type { GlobeMethods } from 'react-globe.gl';
 import { haversineKm, type City } from '@/lib/geo';
 import { useWorld } from '@/store/world-store';
+import { sound } from '@/lib/sound';
 
 export const CAR_MAX_KM = 200;
 
@@ -279,6 +280,7 @@ export function runJourney(
     if (kind === 'plane') scene.add(shadow);
 
     // lepas landas: kamera sedikit naik di kota asal
+    sound.whoosh();
     await flyTo({ lat: a.lat, lng: a.lng, altitude: camBase }, 700);
 
     const camera = g.camera() as THREE.Camera;

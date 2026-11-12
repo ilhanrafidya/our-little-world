@@ -7,6 +7,7 @@ import { apiCreateMemory, apiUpdateMemory, ApiError, uploadPhoto, type FieldErro
 import { getCurrentLocation, reverseGeocode } from '@/lib/geocode';
 import { parseSpotifyTrackId } from '@/lib/spotify';
 import type { MemoryPhoto } from '@/types/memory';
+import { sound } from '@/lib/sound';
 import { CameraIcon, HeartIcon, MapIcon, PinIcon, StarIcon, XIcon } from '@/components/ui/icons';
 
 const field =
@@ -179,6 +180,7 @@ export default function AddSpotDrawer() {
         isEdit && editor.memoryId ? await apiUpdateMemory(editor.memoryId, payload) : await apiCreateMemory(payload);
 
       upsertMemory(saved);
+      sound.chime();
       closeEditor();
       enterMap({ cityKey: saved.cityKey, center: [saved.lat, saved.lng], zoom: 16 });
       setTimeout(() => select(saved.id), 900);

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, useAnimate, AnimatePresence } from 'framer-motion';
 import Starfield from '@/components/ui/Starfield';
 import { ArrowRightIcon } from '@/components/ui/icons';
+import { sound } from '@/lib/sound';
 
 const EARTH = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg';
 
@@ -53,6 +54,7 @@ export default function UnlockForm({ next }: { next: string }) {
       });
 
       if (res.ok) {
+        sound.unlock();
         setSuccess(true);
         setTimeout(() => {
           router.replace(next);
