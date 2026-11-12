@@ -94,7 +94,7 @@ export default function AlbumSheet({ memories }: { memories: Memory[] }) {
       {open && (
         <motion.div
           key="album"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/45 backdrop-blur-[6px] md:items-center md:p-6"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/55 md:items-center md:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, pointerEvents: 'none' }}
@@ -105,7 +105,7 @@ export default function AlbumSheet({ memories }: { memories: Memory[] }) {
             onClick={(e) => e.stopPropagation()}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            exit={{ y: '100%', transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } }}
             transition={{ type: 'spring', damping: 34, stiffness: 320, mass: 0.9 }}
             drag="y"
             dragControls={dragControls}
@@ -115,6 +115,7 @@ export default function AlbumSheet({ memories }: { memories: Memory[] }) {
             onDragEnd={onDragEnd}
             className="flex h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[28px] bg-[#14142e] text-cream-50 shadow-[0_-20px_60px_rgba(0,0,0,0.45)] md:h-[80dvh] md:rounded-[28px]"
             style={{
+              willChange: 'transform',
               backgroundImage:
                 'radial-gradient(120% 60% at 50% 0%, rgba(255,122,156,0.14), transparent 60%), radial-gradient(80% 50% at 100% 100%, rgba(196,181,253,0.08), transparent 60%)',
             }}
