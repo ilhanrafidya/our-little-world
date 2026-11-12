@@ -57,8 +57,12 @@ const fragmentShader = /* glsl */ `
     vec3 rotatedSunDirection = rotX * rotY * Polar2Cartesian(sunPosition);
     float intensity = dot(normalize(vNormal), normalize(rotatedSunDirection));
     vec4 dayColor = texture2D(dayTexture, vUv);
-    vec4 nightColor = texture2D(nightTexture, vUv);
-    float blendFactor = smoothstep(-0.12, 0.12, intensity);
+    vec4 lights = texture2D(nightTexture, vUv);
+    // Sisi malam tetap terang: daratan/laut versi "cahaya bulan" (kebiruan) + lampu kota menyala
+    vec3 moonlit = dayColor.rgb * vec3(0.42, 0.48, 0.66);
+    vec3 cityLights = lights.rgb * vec3(1.6, 1.35, 1.0);
+    vec4 nightColor = vec4(moonlit + cityLights, 1.0);
+    float blendFactor = smoothstep(-0.15, 0.15, intensity);
     gl_FragColor = mix(nightColor, dayColor, blendFactor);
   }
 `;
