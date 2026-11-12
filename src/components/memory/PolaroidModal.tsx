@@ -155,7 +155,9 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                   {memory.story ? (
                     <p className="whitespace-pre-line font-hand text-[1.45rem] leading-[28px]">{memory.story}</p>
                   ) : (
-                    <p className="font-hand text-xl text-night-950/40">No story yet. Add one with Edit.</p>
+                    <p className="font-hand text-xl text-night-950/40">
+                      {memory.status === 'wishlist' ? 'No plans yet. Add some with Edit.' : 'No story yet. Add one with Edit.'}
+                    </p>
                   )}
                 </div>
 

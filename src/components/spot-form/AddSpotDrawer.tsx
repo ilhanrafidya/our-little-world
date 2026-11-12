@@ -24,6 +24,38 @@ const STAGE_LABEL: Record<Stage, string> = {
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+function todayIso() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** Teks form berbeda untuk kenangan (Visited) dan rencana (Wishlist). */
+const COPY = {
+  visited: {
+    eyebrow: 'New memory',
+    heading: 'Save a place',
+    editHeading: 'Update this memory',
+    placePh: 'The café on the corner',
+    dateLabel: 'Date',
+    storyLabel: 'Story',
+    storyPh: 'What do you remember most about this place?',
+    songLabel: 'Our song',
+    submit: 'Save memory',
+  },
+  wishlist: {
+    eyebrow: 'Wishlist',
+    heading: 'Somewhere we’ll go',
+    editHeading: 'Update this wish',
+    placePh: 'Sunset at Uluwatu',
+    dateLabel: 'When (optional)',
+    storyLabel: 'Why we want to go',
+    storyPh: 'What do you want to do there together?',
+    songLabel: 'Song for the trip',
+    submit: 'Add to wishlist',
+  },
+} as const;
+
 export default function AddSpotDrawer() {
   const editor = useWorld((s) => s.editor);
   const draft = useWorld((s) => s.draft);
@@ -46,9 +78,20 @@ export default function AddSpotDrawer() {
   const busy = stage !== 'idle';
   const fe = (f: string) => fieldErrors.find((e) => e.field === f)?.message;
   const isEdit = editor.mode === 'edit';
+  const isWish = draft?.status === 'wishlist';
+  const copy = COPY[draft?.status ?? 'visited'];
 
   function set<K extends keyof SpotDraft>(key: K, value: SpotDraft[K]) {
     updateDraft({ [key]: value } as Partial<SpotDraft>);
+  }
+
+  function changeStatus(status: SpotDraft['status']) {
+    if (!draft || draft.status === status) return;
+    const patch: Partial<SpotDraft> = { status };
+    // Wishlist belum terjadi → tanggal hari ini tidak relevan
+    if (status === 'wishlist' && draft.memoryDate === todayIso()) patch.memoryDate = '';
+    if (status === 'visited' && !draft.memoryDate) patch.memoryDate = todayIso();
+    updateDraft(patch);
   }
 
   function close() {
@@ -115,7 +158,7 @@ export default function AddSpotDrawer() {
 
     try {
       let photo: MemoryPhoto | null | undefined = undefined; // undefined = tidak diubah
-      if (draft.photoFile) photo = await uploadPhoto(draft.photoFile, (s) => setStage(s));
+      if (draft.photoFile && draft.status === 'visited') photo = await uploadPhoto(draft.photoFile, (s) => setStage(s));
       else if (draft.removePhoto) photo = null;
 
       setStage('save');
@@ -187,10 +230,10 @@ export default function AddSpotDrawer() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-night-950/40">
-                    {isEdit ? 'Edit' : 'New memory'}
+                    {isEdit ? 'Edit' : copy.eyebrow}
                   </p>
                   <h2 className="mt-1 text-[22px] font-semibold tracking-tight">
-                    {isEdit ? 'Update this memory' : 'Save a place'}
+                    {isEdit ? copy.editHeading : copy.heading}
                   </h2>
                 </div>
                 <button
@@ -206,8 +249,50 @@ export default function AddSpotDrawer() {
             </div>
 
             <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 pb-6">
-              {/* Foto */}
+              {/* Status */}
               <section>
+                <span className={labelCls}>Status</span>
+                <div className="relative grid grid-cols-2 rounded-2xl bg-night-950/[0.05] p-1">
+                  {(['visited', 'wishlist'] as const).map((s) => {
+                    const active = draft.status === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => changeStatus(s)}
+                        className="relative z-10 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium"
+                      >
+                        {active && (
+                          <motion.span
+                            layoutId="status-pill"
+                            className="absolute inset-0 -z-10 rounded-xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+                          />
+                        )}
+                        <span className={active ? 'text-night-950' : 'text-night-950/45'}>
+                          {s === 'visited' ? <HeartIcon size={16} /> : <StarIcon size={16} />}
+                        </span>
+                        <span className={active ? 'text-night-950' : 'text-night-950/45'}>
+                          {s === 'visited' ? 'Visited' : 'Wishlist'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Foto — hanya untuk Visited */}
+              <AnimatePresence initial={false}>
+                {!isWish && (
+                  <motion.div
+                    key="photo-section"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.35, ease }}
+                    className="overflow-hidden"
+                  >
+                    <section>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
                 <AnimatePresence mode="wait" initial={false}>
                   {draft.photoPreview ? (
@@ -257,37 +342,9 @@ export default function AddSpotDrawer() {
                 </AnimatePresence>
               </section>
 
-              {/* Status */}
-              <section>
-                <span className={labelCls}>Status</span>
-                <div className="relative grid grid-cols-2 rounded-2xl bg-night-950/[0.05] p-1">
-                  {(['visited', 'wishlist'] as const).map((s) => {
-                    const active = draft.status === s;
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => set('status', s)}
-                        className="relative z-10 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium"
-                      >
-                        {active && (
-                          <motion.span
-                            layoutId="status-pill"
-                            className="absolute inset-0 -z-10 rounded-xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
-                          />
-                        )}
-                        <span className={active ? 'text-night-950' : 'text-night-950/45'}>
-                          {s === 'visited' ? <HeartIcon size={16} /> : <StarIcon size={16} />}
-                        </span>
-                        <span className={active ? 'text-night-950' : 'text-night-950/45'}>
-                          {s === 'visited' ? 'Visited' : 'Wishlist'}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Detail */}
               <section className="space-y-4">
@@ -300,7 +357,7 @@ export default function AddSpotDrawer() {
                     className={field}
                     value={draft.title}
                     maxLength={120}
-                    placeholder="The café on the corner"
+                    placeholder={copy.placePh}
                     onChange={(e) => set('title', e.target.value)}
                   />
                   {fe('title') && <p className={errCls}>{fe('title')}</p>}
@@ -323,7 +380,7 @@ export default function AddSpotDrawer() {
                   </div>
                   <div>
                     <label className={labelCls} htmlFor="date">
-                      Date
+                      {copy.dateLabel}
                     </label>
                     <input
                       id="date"
@@ -375,7 +432,7 @@ export default function AddSpotDrawer() {
               <section className="space-y-4">
                 <div>
                   <label className={labelCls} htmlFor="story">
-                    Story
+                    {copy.storyLabel}
                   </label>
                   <textarea
                     id="story"
@@ -383,13 +440,13 @@ export default function AddSpotDrawer() {
                     maxLength={5000}
                     className={`${field} resize-none leading-relaxed`}
                     value={draft.story}
-                    placeholder="What do you remember most about this place?"
+                    placeholder={copy.storyPh}
                     onChange={(e) => set('story', e.target.value)}
                   />
                 </div>
                 <div>
                   <label className={labelCls} htmlFor="spotify">
-                    Spotify song <span className="normal-case tracking-normal text-night-950/30">— optional</span>
+                    {copy.songLabel} <span className="normal-case tracking-normal text-night-950/30">— optional</span>
                   </label>
                   <input
                     id="spotify"
@@ -434,7 +491,7 @@ export default function AddSpotDrawer() {
                   />
                 )}
                 <span className="relative">
-                  {busy ? STAGE_LABEL[stage] : isEdit ? 'Save changes' : 'Save memory'}
+                  {busy ? STAGE_LABEL[stage] : isEdit ? 'Save changes' : copy.submit}
                 </span>
               </button>
             </div>
