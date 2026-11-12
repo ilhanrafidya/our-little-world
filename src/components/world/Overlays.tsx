@@ -9,6 +9,7 @@ import { useWorld } from '@/store/world-store';
 import LockButton from '@/components/auth/LockButton';
 import { reverseGeocode } from '@/lib/geocode';
 import {
+  AlbumIcon,
   GlobeIcon,
   MoonIcon,
   PauseIcon,
@@ -320,7 +321,8 @@ export function AddSpotFab() {
   const editorOpen = useWorld((s) => s.editor.open);
   const playing = useWorld((s) => s.journey.playing);
   const selected = useWorld((s) => s.selectedMemoryId);
-  const hidden = editorOpen || playing || !!selected;
+  const albumOpen = useWorld((s) => s.albumOpen);
+  const hidden = editorOpen || playing || !!selected || albumOpen;
 
   return (
     <AnimatePresence>
@@ -336,6 +338,35 @@ export function AddSpotFab() {
           className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-night-950 shadow-xl shadow-black/35 transition active:scale-90"
         >
           <PlusIcon size={26} strokeWidth={2.2} />
+        </motion.button>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ── Tombol album (kiri bawah, sejajar tombol +) ────────────────
+export function AlbumButton() {
+  const setOpen = useWorld((s) => s.setAlbumOpen);
+  const editorOpen = useWorld((s) => s.editor.open);
+  const playing = useWorld((s) => s.journey.playing);
+  const selected = useWorld((s) => s.selectedMemoryId);
+  const albumOpen = useWorld((s) => s.albumOpen);
+  const hidden = editorOpen || playing || !!selected || albumOpen;
+
+  return (
+    <AnimatePresence>
+      {!hidden && (
+        <motion.button
+          key="album-btn"
+          initial={{ scale: 0, rotate: 90 }}
+          animate={{ scale: 1, rotate: 0 }}
+          exit={{ scale: 0, rotate: -90 }}
+          transition={{ type: 'spring', damping: 18, stiffness: 260 }}
+          onClick={() => setOpen(true)}
+          aria-label="Open album"
+          className={`fixed bottom-[max(env(safe-area-inset-bottom),1rem)] left-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full transition active:scale-90 ${glass}`}
+        >
+          <AlbumIcon size={23} />
         </motion.button>
       )}
     </AnimatePresence>

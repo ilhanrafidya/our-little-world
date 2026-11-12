@@ -85,6 +85,13 @@ body {
   border-top-left-radius: 8px;
   margin-bottom: env(safe-area-inset-bottom);
 }
+.olw-map .leaflet-bottom.leaflet-left {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.olw-map .leaflet-control-attribution {
+  border-radius: 8px 8px 0 0;
+}
 .olw-map--dark .leaflet-control-attribution {
   background: rgba(10, 10, 30, 0.55);
   color: rgba(255, 255, 255, 0.6);

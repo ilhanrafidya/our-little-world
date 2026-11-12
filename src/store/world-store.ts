@@ -71,6 +71,8 @@ interface WorldState {
   journey: JourneyState;
   editor: EditorState;
   draft: SpotDraft | null;
+  albumOpen: boolean;
+  setAlbumOpen: (open: boolean) => void;
 
   setMemories: (memories: Memory[]) => void;
   upsertMemory: (memory: Memory) => void;
@@ -137,6 +139,8 @@ export const useWorld = create<WorldState>((set, get) => ({
   journey: IDLE_JOURNEY,
   editor: { open: false, mode: 'create', memoryId: null, picking: false },
   draft: null,
+  albumOpen: false,
+  setAlbumOpen: (albumOpen) => set({ albumOpen }),
 
   // ── data ──
   setMemories: (memories) => set({ memories }),

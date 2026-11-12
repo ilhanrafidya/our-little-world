@@ -141,3 +141,11 @@ export const RouteIcon = (p: P) => (
     <path d="M8.2 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.8" strokeDasharray="2.2 2.4" />
   </Base>
 );
+export const AlbumIcon = (p: P) => (
+  <Base {...p}>
+    <rect x="3.5" y="3.5" width="7" height="7" rx="1.6" />
+    <rect x="13.5" y="3.5" width="7" height="7" rx="1.6" />
+    <rect x="3.5" y="13.5" width="7" height="7" rx="1.6" />
+    <rect x="13.5" y="13.5" width="7" height="7" rx="1.6" />
+  </Base>
+);

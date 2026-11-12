@@ -9,7 +9,8 @@ import Starfield from '@/components/ui/Starfield';
 import GlobeView from './GlobeView';
 import MapView from './MapView';
 import { useTimeTheme } from './useTimeTheme';
-import { AddSpotFab, GlobeHint, JourneyControls, PickOverlay, TopBar } from './Overlays';
+import { AddSpotFab, AlbumButton, GlobeHint, JourneyControls, PickOverlay, TopBar } from './Overlays';
+import AlbumSheet from '@/components/memory/AlbumSheet';
 import PolaroidModal from '@/components/memory/PolaroidModal';
 import AddSpotDrawer from '@/components/spot-form/AddSpotDrawer';
 import { sound } from '@/lib/sound';
@@ -125,10 +126,12 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
       />
       <GlobeHint empty={memories.length === 0} />
       <JourneyControls journey={journey} />
+      <AlbumButton />
       <AddSpotFab />
       <PickOverlay />
       <PolaroidModal memory={selected} />
       <AddSpotDrawer />
+      <AlbumSheet memories={memories} />
     </main>
   );
 }
