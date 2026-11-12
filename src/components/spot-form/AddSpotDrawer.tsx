@@ -1,24 +1,28 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion';
 import { useWorld, type SpotDraft } from '@/store/world-store';
 import { apiCreateMemory, apiUpdateMemory, ApiError, uploadPhoto, type FieldError, type MemoryPayload } from '@/lib/api-client';
 import { getCurrentLocation, reverseGeocode } from '@/lib/geocode';
 import { parseSpotifyTrackId } from '@/lib/spotify';
 import type { MemoryPhoto } from '@/types/memory';
+import { CameraIcon, HeartIcon, MapIcon, PinIcon, StarIcon, XIcon } from '@/components/ui/icons';
 
-const input =
-  'w-full rounded-xl border border-night-950/10 bg-white px-3.5 py-3 text-base text-night-950 outline-none transition placeholder:text-night-950/35 focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent)]/15';
-const label = 'mb-1.5 block text-sm font-medium text-night-950/70';
+const field =
+  'w-full rounded-2xl border border-night-950/[0.08] bg-white px-4 py-3.5 text-base text-night-950 outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-night-950/30 focus:border-night-950/25 focus:shadow-[0_0_0_4px_rgba(23,23,58,0.06)]';
+const labelCls = 'mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-night-950/45';
+const errCls = 'mt-1.5 text-xs text-[#d6336c]';
 
 type Stage = 'idle' | 'compress' | 'upload' | 'save';
 const STAGE_LABEL: Record<Stage, string> = {
   idle: '',
-  compress: 'Mengecilkan foto…',
+  compress: 'Menyiapkan foto…',
   upload: 'Mengunggah foto…',
-  save: 'Menyimpan kenangan…',
+  save: 'Menyimpan…',
 };
+
+const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function AddSpotDrawer() {
   const editor = useWorld((s) => s.editor);
@@ -30,6 +34,7 @@ export default function AddSpotDrawer() {
   const enterMap = useWorld((s) => s.enterMap);
   const select = useWorld((s) => s.select);
 
+  const dragControls = useDragControls();
   const fileRef = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState<Stage>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -40,17 +45,22 @@ export default function AddSpotDrawer() {
   const visible = editor.open && !editor.picking && !!draft;
   const busy = stage !== 'idle';
   const fe = (f: string) => fieldErrors.find((e) => e.field === f)?.message;
+  const isEdit = editor.mode === 'edit';
 
   function set<K extends keyof SpotDraft>(key: K, value: SpotDraft[K]) {
     updateDraft({ [key]: value } as Partial<SpotDraft>);
   }
 
-  async function fillCityFrom(lat: number, lng: number) {
-    const current = useWorld.getState().draft;
-    if (current?.city.trim()) return;
-    const { city, country } = await reverseGeocode(lat, lng);
-    const latest = useWorld.getState().draft;
-    if (latest && !latest.city.trim() && city) updateDraft({ city, country: latest.country || country || '' });
+  function close() {
+    if (busy) return;
+    setError(null);
+    setFieldErrors([]);
+    setLocError(null);
+    closeEditor();
+  }
+
+  function onDragEnd(_: unknown, info: PanInfo) {
+    if (info.offset.y > 120 || info.velocity.y > 600) close();
   }
 
   async function useMyLocation() {
@@ -59,7 +69,11 @@ export default function AddSpotDrawer() {
     try {
       const pos = await getCurrentLocation();
       updateDraft({ lat: pos.lat, lng: pos.lng });
-      void fillCityFrom(pos.lat, pos.lng);
+      if (!useWorld.getState().draft?.city.trim()) {
+        const { city, country } = await reverseGeocode(pos.lat, pos.lng);
+        const latest = useWorld.getState().draft;
+        if (latest && !latest.city.trim() && city) updateDraft({ city, country: latest.country || country || '' });
+      }
     } catch (err) {
       setLocError(err instanceof Error ? err.message : 'Lokasi tidak ditemukan.');
     } finally {
@@ -87,13 +101,12 @@ export default function AddSpotDrawer() {
     setError(null);
     setFieldErrors([]);
 
-    // Validasi ringan di HP sebelum upload
     const local: FieldError[] = [];
     if (!draft.title.trim()) local.push({ field: 'title', message: 'Judul tempat wajib diisi' });
     if (!draft.city.trim()) local.push({ field: 'city', message: 'Nama kota wajib diisi' });
-    if (draft.lat == null || draft.lng == null) local.push({ field: 'location', message: 'Tentukan lokasi dulu' });
+    if (draft.lat == null || draft.lng == null) local.push({ field: 'location', message: 'Tentukan lokasinya dulu' });
     if (draft.spotifyUrl.trim() && !parseSpotifyTrackId(draft.spotifyUrl))
-      local.push({ field: 'spotifyUrl', message: 'Harus link lagu Spotify (Share → Copy Song Link)' });
+      local.push({ field: 'spotifyUrl', message: 'Gunakan link lagu: Share → Copy Song Link' });
     if (local.length) {
       setFieldErrors(local);
       return;
@@ -101,11 +114,8 @@ export default function AddSpotDrawer() {
 
     try {
       let photo: MemoryPhoto | null | undefined = undefined; // undefined = tidak diubah
-      if (draft.photoFile) {
-        photo = await uploadPhoto(draft.photoFile, (s) => setStage(s));
-      } else if (draft.removePhoto) {
-        photo = null;
-      }
+      if (draft.photoFile) photo = await uploadPhoto(draft.photoFile, (s) => setStage(s));
+      else if (draft.removePhoto) photo = null;
 
       setStage('save');
       const payload: MemoryPayload = {
@@ -122,13 +132,10 @@ export default function AddSpotDrawer() {
       };
 
       const saved =
-        editor.mode === 'edit' && editor.memoryId
-          ? await apiUpdateMemory(editor.memoryId, payload)
-          : await apiCreateMemory(payload);
+        isEdit && editor.memoryId ? await apiUpdateMemory(editor.memoryId, payload) : await apiCreateMemory(payload);
 
       upsertMemory(saved);
       closeEditor();
-      // Terbang ke kenangan yang baru disimpan lalu buka Polaroid-nya
       enterMap({ cityKey: saved.cityKey, center: [saved.lat, saved.lng], zoom: 16 });
       setTimeout(() => select(saved.id), 900);
     } catch (err) {
@@ -148,11 +155,12 @@ export default function AddSpotDrawer() {
       {visible && draft && (
         <motion.div
           key="drawer"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm md:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/40 backdrop-blur-[6px] md:items-center md:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={() => !busy && closeEditor()}
+          transition={{ duration: 0.3 }}
+          onClick={close}
         >
           <motion.form
             onSubmit={onSubmit}
@@ -160,197 +168,273 @@ export default function AddSpotDrawer() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-3xl bg-cream-50 text-night-950 shadow-2xl md:rounded-3xl"
+            transition={{ type: 'spring', damping: 34, stiffness: 320, mass: 0.9 }}
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={onDragEnd}
+            className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] bg-[#faf7f2] text-night-950 shadow-[0_-20px_60px_rgba(0,0,0,0.35)] md:rounded-[28px]"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-2 pt-3">
-              <span className="mx-auto mb-1 block h-1.5 w-10 rounded-full bg-night-950/15 md:hidden" />
-            </div>
-            <div className="flex items-center justify-between px-5 pb-3">
-              <h2 className="font-display text-2xl italic">
-                {editor.mode === 'edit' ? 'Edit kenangan' : 'Kenangan baru ✨'}
-              </h2>
-              <button
-                type="button"
-                onClick={closeEditor}
-                disabled={busy}
-                className="rounded-full p-2 text-night-950/60 active:scale-90"
-                aria-label="Tutup"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 pb-4">
-              {/* Foto */}
-              <div>
-                <span className={label}>Foto</span>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
-                {draft.photoPreview ? (
-                  <div className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={draft.photoPreview} alt="" className="aspect-[4/3] w-full rounded-2xl object-cover" />
-                    <div className="absolute bottom-2 right-2 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        className="rounded-full bg-black/60 px-3 py-1.5 text-xs text-white backdrop-blur"
-                      >
-                        Ganti
-                      </button>
-                      <button
-                        type="button"
-                        onClick={removePhoto}
-                        className="rounded-full bg-black/60 px-3 py-1.5 text-xs text-white backdrop-blur"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-night-950/15 bg-white text-night-950/50 active:scale-[0.99]"
-                  >
-                    <span className="text-3xl">📷</span>
-                    <span className="text-sm">Pilih dari galeri / ambil foto</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Lokasi */}
-              <div>
-                <span className={label}>Lokasi</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={useMyLocation}
-                    disabled={locating}
-                    className="rounded-xl bg-night-950 px-3 py-3 text-sm font-medium text-cream-50 active:scale-[0.98] disabled:opacity-60"
-                  >
-                    {locating ? 'Mencari…' : '📍 Lokasi saat ini'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={startPicking}
-                    className="rounded-xl border border-night-950/15 bg-white px-3 py-3 text-sm font-medium active:scale-[0.98]"
-                  >
-                    🗺️ Pilih di peta
-                  </button>
+            {/* Handle + header (area untuk geser turun menutup) */}
+            <div
+              className="touch-none cursor-grab select-none px-6 pb-4 pt-3 active:cursor-grabbing"
+              onPointerDown={(e) => dragControls.start(e)}
+            >
+              <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-night-950/15 md:hidden" />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-night-950/40">
+                    {isEdit ? 'Edit' : 'New memory'}
+                  </p>
+                  <h2 className="mt-1 text-[22px] font-semibold tracking-tight">
+                    {isEdit ? 'Perbarui kenangan' : 'Simpan satu tempat'}
+                  </h2>
                 </div>
-                <p className={`mt-2 text-xs ${draft.lat != null ? 'text-night-950/60' : 'text-night-950/40'}`}>
-                  {draft.lat != null && draft.lng != null
-                    ? `✓ ${draft.lat.toFixed(5)}, ${draft.lng.toFixed(5)}`
-                    : 'Belum ada titik lokasi'}
-                </p>
-                {(locError || fe('location')) && <p className="mt-1 text-xs text-red-600">{locError ?? fe('location')}</p>}
+                <button
+                  type="button"
+                  onClick={close}
+                  disabled={busy}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-night-950/[0.06] text-night-950/60 transition active:scale-90"
+                  aria-label="Tutup"
+                >
+                  <XIcon size={16} />
+                </button>
               </div>
+            </div>
+
+            <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 pb-6">
+              {/* Foto */}
+              <section>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
+                <AnimatePresence mode="wait" initial={false}>
+                  {draft.photoPreview ? (
+                    <motion.div
+                      key="preview"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3, ease }}
+                      className="relative overflow-hidden rounded-3xl"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={draft.photoPreview} alt="" className="aspect-[4/3] w-full object-cover" />
+                      <div className="absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-linear-to-t from-black/50 to-transparent p-3 pt-10">
+                        <button
+                          type="button"
+                          onClick={() => fileRef.current?.click()}
+                          className="rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-medium text-night-950 backdrop-blur transition active:scale-95"
+                        >
+                          Ganti
+                        </button>
+                        <button
+                          type="button"
+                          onClick={removePhoto}
+                          className="rounded-full bg-black/45 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition active:scale-95"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.button
+                      key="empty"
+                      type="button"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => fileRef.current?.click()}
+                      className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-night-950/15 bg-white text-night-950/45 transition active:scale-[0.99]"
+                    >
+                      <span className="grid h-12 w-12 place-items-center rounded-full bg-night-950/[0.05]">
+                        <CameraIcon size={22} />
+                      </span>
+                      <span className="text-sm font-medium">Tambahkan foto</span>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </section>
 
               {/* Status */}
-              <div>
-                <span className={label}>Status</span>
-                <div className="grid grid-cols-2 gap-1 rounded-xl bg-night-950/5 p-1">
-                  {(['visited', 'wishlist'] as const).map((s) => (
+              <section>
+                <span className={labelCls}>Status</span>
+                <div className="relative grid grid-cols-2 rounded-2xl bg-night-950/[0.05] p-1">
+                  {(['visited', 'wishlist'] as const).map((s) => {
+                    const active = draft.status === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => set('status', s)}
+                        className="relative z-10 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium"
+                      >
+                        {active && (
+                          <motion.span
+                            layoutId="status-pill"
+                            className="absolute inset-0 -z-10 rounded-xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+                          />
+                        )}
+                        <span className={active ? 'text-night-950' : 'text-night-950/45'}>
+                          {s === 'visited' ? <HeartIcon size={16} /> : <StarIcon size={16} />}
+                        </span>
+                        <span className={active ? 'text-night-950' : 'text-night-950/45'}>
+                          {s === 'visited' ? 'Visited' : 'Wishlist'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Detail */}
+              <section className="space-y-4">
+                <div>
+                  <label className={labelCls} htmlFor="title">
+                    Nama tempat
+                  </label>
+                  <input
+                    id="title"
+                    className={field}
+                    value={draft.title}
+                    maxLength={120}
+                    placeholder="Kafe di ujung jalan"
+                    onChange={(e) => set('title', e.target.value)}
+                  />
+                  {fe('title') && <p className={errCls}>{fe('title')}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls} htmlFor="city">
+                      Kota
+                    </label>
+                    <input
+                      id="city"
+                      className={field}
+                      value={draft.city}
+                      maxLength={80}
+                      placeholder="Depok"
+                      onChange={(e) => set('city', e.target.value)}
+                    />
+                    {fe('city') && <p className={errCls}>{fe('city')}</p>}
+                  </div>
+                  <div>
+                    <label className={labelCls} htmlFor="date">
+                      Tanggal
+                    </label>
+                    <input
+                      id="date"
+                      type="date"
+                      className={`${field} min-h-[54px]`}
+                      value={draft.memoryDate}
+                      onChange={(e) => set('memoryDate', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* Lokasi */}
+              <section>
+                <span className={labelCls}>Lokasi</span>
+                <div className="overflow-hidden rounded-2xl border border-night-950/[0.08] bg-white">
+                  <div className="grid grid-cols-2 divide-x divide-night-950/[0.08]">
                     <button
-                      key={s}
                       type="button"
-                      onClick={() => set('status', s)}
-                      className={`rounded-lg py-2.5 text-sm font-medium transition ${
-                        draft.status === s ? 'bg-white shadow' : 'text-night-950/50'
-                      }`}
+                      onClick={useMyLocation}
+                      disabled={locating}
+                      className="flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition active:bg-night-950/[0.04] disabled:opacity-50"
                     >
-                      {s === 'visited' ? '💗 Sudah dikunjungi' : '⭐ Wishlist'}
+                      <PinIcon size={17} /> {locating ? 'Mencari…' : 'Lokasi saat ini'}
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={startPicking}
+                      className="flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition active:bg-night-950/[0.04]"
+                    >
+                      <MapIcon size={17} /> Pilih di peta
+                    </button>
+                  </div>
+                  <div className="border-t border-night-950/[0.08] px-4 py-2.5 text-xs tabular-nums text-night-950/50">
+                    {draft.lat != null && draft.lng != null ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        {draft.lat.toFixed(5)}, {draft.lng.toFixed(5)}
+                      </span>
+                    ) : (
+                      'Belum ada titik lokasi'
+                    )}
+                  </div>
                 </div>
-              </div>
+                {(locError || fe('location')) && <p className={errCls}>{locError ?? fe('location')}</p>}
+              </section>
 
-              <div>
-                <label className={label} htmlFor="title">
-                  Judul tempat
-                </label>
-                <input
-                  id="title"
-                  className={input}
-                  value={draft.title}
-                  maxLength={120}
-                  placeholder="mis. Kopi pertama kita"
-                  onChange={(e) => set('title', e.target.value)}
-                />
-                {fe('title') && <p className="mt-1 text-xs text-red-600">{fe('title')}</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              {/* Cerita & lagu */}
+              <section className="space-y-4">
                 <div>
-                  <label className={label} htmlFor="city">
-                    Kota
+                  <label className={labelCls} htmlFor="story">
+                    Cerita
                   </label>
-                  <input
-                    id="city"
-                    className={input}
-                    value={draft.city}
-                    maxLength={80}
-                    placeholder="Depok"
-                    onChange={(e) => set('city', e.target.value)}
-                  />
-                  {fe('city') && <p className="mt-1 text-xs text-red-600">{fe('city')}</p>}
-                </div>
-                <div>
-                  <label className={label} htmlFor="date">
-                    Tanggal
-                  </label>
-                  <input
-                    id="date"
-                    type="date"
-                    className={input}
-                    value={draft.memoryDate}
-                    onChange={(e) => set('memoryDate', e.target.value)}
+                  <textarea
+                    id="story"
+                    rows={4}
+                    maxLength={5000}
+                    className={`${field} resize-none leading-relaxed`}
+                    value={draft.story}
+                    placeholder="Apa yang paling kalian ingat dari tempat ini?"
+                    onChange={(e) => set('story', e.target.value)}
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className={label} htmlFor="story">
-                  Cerita
-                </label>
-                <textarea
-                  id="story"
-                  rows={4}
-                  maxLength={5000}
-                  className={`${input} resize-none`}
-                  value={draft.story}
-                  placeholder="Apa yang kalian ingat dari tempat ini?"
-                  onChange={(e) => set('story', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className={label} htmlFor="spotify">
-                  Link lagu Spotify <span className="font-normal text-night-950/40">(opsional)</span>
-                </label>
-                <input
-                  id="spotify"
-                  inputMode="url"
-                  className={input}
-                  value={draft.spotifyUrl}
-                  placeholder="https://open.spotify.com/track/…"
-                  onChange={(e) => set('spotifyUrl', e.target.value)}
-                />
-                {fe('spotifyUrl') && <p className="mt-1 text-xs text-red-600">{fe('spotifyUrl')}</p>}
-              </div>
+                <div>
+                  <label className={labelCls} htmlFor="spotify">
+                    Lagu Spotify <span className="normal-case tracking-normal text-night-950/30">— opsional</span>
+                  </label>
+                  <input
+                    id="spotify"
+                    inputMode="url"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    className={field}
+                    value={draft.spotifyUrl}
+                    placeholder="open.spotify.com/track/…"
+                    onChange={(e) => set('spotifyUrl', e.target.value)}
+                  />
+                  {fe('spotifyUrl') && <p className={errCls}>{fe('spotifyUrl')}</p>}
+                </div>
+              </section>
             </div>
 
             {/* Footer */}
-            <div className="border-t border-night-950/10 px-5 pb-safe pt-3">
-              {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
+            <div className="border-t border-night-950/[0.06] bg-[#faf7f2]/95 px-6 pb-safe pt-3 backdrop-blur">
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-2 text-sm text-[#d6336c]"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
               <button
                 type="submit"
                 disabled={busy}
-                className="mb-1 w-full rounded-2xl bg-linear-to-r from-[var(--accent)] to-[var(--accent2)] py-4 font-semibold text-night-950 shadow-lg active:scale-[0.98] disabled:opacity-60"
+                className="relative mb-1 h-14 w-full overflow-hidden rounded-2xl bg-night-950 text-[15px] font-medium tracking-tight text-cream-50 transition active:scale-[0.985] disabled:opacity-70"
               >
-                {busy ? STAGE_LABEL[stage] : editor.mode === 'edit' ? 'Simpan perubahan' : 'Simpan kenangan 💗'}
+                {busy && (
+                  <motion.span
+                    className="absolute inset-y-0 left-0 bg-white/10"
+                    initial={{ width: '0%' }}
+                    animate={{ width: stage === 'compress' ? '30%' : stage === 'upload' ? '75%' : '95%' }}
+                    transition={{ duration: 0.8, ease }}
+                  />
+                )}
+                <span className="relative">
+                  {busy ? STAGE_LABEL[stage] : isEdit ? 'Simpan perubahan' : 'Simpan kenangan'}
+                </span>
               </button>
             </div>
           </motion.form>

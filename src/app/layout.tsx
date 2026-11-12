@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from 'next';
-import { Caveat, Fraunces, Inter } from 'next/font/google';
+import { Caveat, Fraunces, Geist } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'swap' });
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', display: 'swap', style: ['normal', 'italic'] });
 const caveat = Caveat({ subsets: ['latin'], variable: '--font-caveat', display: 'swap' });
 
@@ -30,7 +30,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={`${inter.variable} ${fraunces.variable} ${caveat.variable}`}>
+    <html lang="id" className={`${geist.variable} ${fraunces.variable} ${caveat.variable}`}>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

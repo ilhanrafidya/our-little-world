@@ -8,6 +8,18 @@ import { THEMES } from '@/lib/theme';
 import { useWorld } from '@/store/world-store';
 import LockButton from '@/components/auth/LockButton';
 import { reverseGeocode } from '@/lib/geocode';
+import {
+  GlobeIcon,
+  MoonIcon,
+  PlayIcon,
+  PlusIcon,
+  StopIcon,
+  SunIcon,
+  SunriseIcon,
+  SunsetIcon,
+} from '@/components/ui/icons';
+
+const PHASE_ICON = { dawn: SunriseIcon, day: SunIcon, dusk: SunsetIcon, night: MoonIcon } as const;
 
 const glass =
   'border border-white/15 bg-[var(--panel)] text-cream-50 shadow-lg shadow-black/20 backdrop-blur-xl';
@@ -26,6 +38,7 @@ export function TopBar({
   const picking = useWorld((s) => s.editor.picking);
   const backToGlobe = useWorld((s) => s.backToGlobe);
   const t = THEMES[phase];
+  const Icon = PHASE_ICON[phase];
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 px-4 pt-safe">
@@ -39,9 +52,9 @@ export function TopBar({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -12 }}
             onClick={backToGlobe}
-            className={`pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium active:scale-95 ${glass}`}
+            className={`pointer-events-auto flex h-10 items-center gap-2 rounded-full px-4 text-[13px] font-medium tracking-tight active:scale-95 ${glass}`}
           >
-            <span aria-hidden>🌍</span> Back to Globe
+            <GlobeIcon size={17} /> Back to Globe
           </motion.button>
         ) : (
           <motion.h1
@@ -59,13 +72,18 @@ export function TopBar({
       <div className="pointer-events-auto flex items-center gap-2">
         <button
           onClick={onCycleTheme}
-          aria-label="Ganti tema"
-          className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm active:scale-95 ${glass}`}
+          aria-label="Change theme"
+          className={`flex h-10 items-center gap-2 rounded-full pl-3 pr-3.5 text-[13px] font-medium tracking-tight active:scale-95 ${glass}`}
         >
-          <span aria-hidden>{t.icon}</span>
-          <span className="text-xs opacity-80">{override === 'auto' ? `Auto · ${t.label}` : t.label}</span>
+          <Icon size={17} />
+          <span>{t.label}</span>
+          {override === 'auto' && (
+            <span className="rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider opacity-80">
+              Auto
+            </span>
+          )}
         </button>
-        <LockButton className={`!px-3 !text-xs ${glass}`} />
+        <LockButton className={glass} />
       </div>
     </header>
   );
@@ -93,12 +111,12 @@ export function JourneyControls({ journey }: { journey: City[] }) {
             transition={{ duration: 0.5 }}
             className="pointer-events-none absolute inset-x-0 top-24 z-20 text-center"
           >
-            <p className="text-xs uppercase tracking-[0.3em] text-cream-50/70">
+            <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-cream-50/60">
               {state.index + 1} / {journey.length}
             </p>
             <p className="mt-1 font-display text-4xl italic text-cream-50 drop-shadow-lg">{current.name}</p>
             {current.firstDate && (
-              <p className="mt-1 font-hand text-2xl text-[var(--accent2)]">{formatDate(current.firstDate)}</p>
+              <p className="mt-2 text-sm font-medium tracking-wide text-[var(--accent2)]">{formatDate(current.firstDate)}</p>
             )}
           </motion.div>
         )}
@@ -107,9 +125,17 @@ export function JourneyControls({ journey }: { journey: City[] }) {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-safe">
         <button
           onClick={state.playing ? stop : start}
-          className="pointer-events-auto mb-2 flex items-center gap-2 rounded-full bg-linear-to-r from-[var(--accent)] to-[var(--accent2)] px-6 py-3.5 font-medium text-night-950 shadow-lg shadow-black/30 active:scale-95"
+          className="pointer-events-auto mb-2 flex h-12 items-center gap-2.5 rounded-full bg-cream-50 px-6 text-[15px] font-medium tracking-tight text-night-950 shadow-lg shadow-black/30 transition active:scale-95"
         >
-          {state.playing ? '■ Stop' : '▶ Play Journey'}
+          {state.playing ? (
+            <>
+              <StopIcon size={15} /> Stop
+            </>
+          ) : (
+            <>
+              <PlayIcon size={15} /> Play Journey
+            </>
+          )}
         </button>
       </div>
     </>
@@ -121,9 +147,14 @@ export function GlobeHint({ empty }: { empty: boolean }) {
   const mode = useWorld((s) => s.mode);
   const playing = useWorld((s) => s.journey.playing);
   if (mode !== 'globe' || playing) return null;
+  // Di bawah (di atas tombol Play Journey) agar tidak menabrak judul
   return (
-    <p className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-10 px-6 text-center text-xs text-cream-50/60">
-      {empty ? 'Belum ada kenangan — tekan + untuk menambah yang pertama 💫' : 'Ketuk kota atau zoom untuk masuk ke peta'}
+    <p
+      className={`pointer-events-none absolute inset-x-0 z-10 px-24 text-center text-xs font-medium tracking-tight text-cream-50/55 ${
+        empty ? 'bottom-[calc(max(env(safe-area-inset-bottom),1rem)+1.75rem)]' : 'bottom-[calc(max(env(safe-area-inset-bottom),1rem)+4.5rem)]'
+      }`}
+    >
+      {empty ? 'No memories yet — tap + to add your first' : 'Tap a city or zoom in to explore'}
     </p>
   );
 }
@@ -147,9 +178,9 @@ export function AddSpotFab() {
           transition={{ type: 'spring', damping: 18, stiffness: 260 }}
           onClick={openCreate}
           aria-label="Tambah kenangan"
-          className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-4xl font-light leading-none text-night-950 shadow-xl shadow-black/35 active:scale-90"
+          className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-night-950 shadow-xl shadow-black/35 transition active:scale-90"
         >
-          +
+          <PlusIcon size={26} strokeWidth={2.2} />
         </motion.button>
       )}
     </AnimatePresence>
@@ -179,7 +210,7 @@ export function PickOverlay() {
     <AnimatePresence>
       {picking && (
         <motion.div key="pick" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none fixed inset-0 z-40">
-          <p className={`absolute inset-x-4 top-[calc(env(safe-area-inset-top)+4.25rem)] mx-auto max-w-sm rounded-2xl px-4 py-3 text-center text-sm ${glass}`}>
+          <p className={`absolute inset-x-4 top-[calc(env(safe-area-inset-top)+1rem)] mx-auto max-w-sm rounded-2xl px-4 py-3 text-center text-[13px] font-medium tracking-tight ${glass}`}>
             Geser peta sampai pin tepat di lokasi kenangan
           </p>
           {/* Pin di tengah layar — ujungnya menunjuk titik tengah peta */}
@@ -192,14 +223,14 @@ export function PickOverlay() {
           </div>
           <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-night-950/60" />
           <div className="pointer-events-auto absolute inset-x-0 bottom-0 flex justify-center gap-2 px-4 pb-safe">
-            <button onClick={cancelPicking} className={`mb-2 rounded-2xl px-5 py-4 text-sm font-medium active:scale-95 ${glass}`}>
+            <button onClick={cancelPicking} className={`mb-2 h-14 rounded-2xl px-5 text-[15px] font-medium tracking-tight active:scale-95 ${glass}`}>
               Batal
             </button>
             <button
               onClick={confirm}
-              className="mb-2 flex-1 max-w-xs rounded-2xl bg-linear-to-r from-[var(--accent)] to-[var(--accent2)] px-5 py-4 font-semibold text-night-950 shadow-lg active:scale-95"
+              className="mb-2 h-14 max-w-xs flex-1 rounded-2xl bg-cream-50 px-5 text-[15px] font-medium tracking-tight text-night-950 shadow-lg active:scale-95"
             >
-              Pakai titik ini 📍
+              Pakai titik ini
             </button>
           </div>
         </motion.div>

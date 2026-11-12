@@ -23,7 +23,7 @@ export interface ThemeTokens {
 export const THEMES: Record<Phase, ThemeTokens> = {
   dawn: {
     phase: 'dawn',
-    label: 'Pagi',
+    label: 'Dawn',
     icon: '🌅',
     sky: 'linear-gradient(180deg,#1d1b45 0%,#5b3a6e 55%,#e48f7a 100%)',
     stars: 0.35,
@@ -39,7 +39,7 @@ export const THEMES: Record<Phase, ThemeTokens> = {
   },
   day: {
     phase: 'day',
-    label: 'Siang',
+    label: 'Day',
     icon: '☀️',
     sky: 'linear-gradient(180deg,#06162e 0%,#0f3266 55%,#2f6fb3 100%)',
     stars: 0.12,
@@ -55,7 +55,7 @@ export const THEMES: Record<Phase, ThemeTokens> = {
   },
   dusk: {
     phase: 'dusk',
-    label: 'Senja',
+    label: 'Dusk',
     icon: '🌇',
     sky: 'linear-gradient(180deg,#140c2e 0%,#3d1a4a 50%,#b5486a 100%)',
     stars: 0.55,
@@ -71,7 +71,7 @@ export const THEMES: Record<Phase, ThemeTokens> = {
   },
   night: {
     phase: 'night',
-    label: 'Malam',
+    label: 'Night',
     icon: '🌙',
     sky: 'linear-gradient(180deg,#070716 0%,#0d0d24 55%,#17173a 100%)',
     stars: 1,

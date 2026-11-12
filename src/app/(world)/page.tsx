@@ -14,7 +14,7 @@ export default async function WorldPage() {
     const missingTable = err instanceof Error && /memories_api|relation/.test(err.message);
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="font-display text-2xl italic">Dunia kita belum bisa dimuat 🥺</p>
+        <p className="font-display text-2xl italic">Dunia kita belum bisa dimuat</p>
         <p className="max-w-sm text-sm text-cream-50/70">
           {missingTable
             ? 'Tabel database belum ada. Jalankan db/schema.sql di Neon SQL Editor.'

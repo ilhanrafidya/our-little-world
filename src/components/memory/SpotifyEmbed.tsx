@@ -23,7 +23,7 @@ export default function SpotifyEmbed({ url }: { url: string }) {
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 text-xs font-medium text-[#1a7f45] underline-offset-2 hover:underline"
       >
-        ▶ Buka lagu lengkap di Spotify
+        Buka lagu lengkap di Spotify →
       </a>
     </div>
   );

@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/format';
 import { apiDeleteMemory, ApiError } from '@/lib/api-client';
 import { useWorld } from '@/store/world-store';
 import SpotifyEmbed from './SpotifyEmbed';
+import { FlipIcon, HeartIcon, PencilIcon, PinIcon, StarIcon, TrashIcon, XIcon } from '@/components/ui/icons';
 
 /** Kemiringan acak tapi stabil per kenangan (seperti foto ditempel di dinding). */
 function tiltFor(id: string) {
@@ -98,24 +99,27 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                       className="aspect-square w-full object-cover"
                     />
                   ) : (
-                    <div className="flex aspect-square w-full items-center justify-center bg-linear-to-br from-[#ffd3b0] via-[#ff9fb8] to-[#b9a6ff] text-6xl">
-                      {memory.status === 'visited' ? '💗' : '⭐'}
+                    <div className="flex aspect-square w-full items-center justify-center bg-linear-to-br from-[#ffd3b0] via-[#ff9fb8] to-[#b9a6ff] text-white/90">
+                      {memory.status === 'visited' ? <HeartIcon size={56} strokeWidth={1.25} /> : <StarIcon size={56} strokeWidth={1.25} />}
                     </div>
                   )}
                 </button>
                 <div className="px-1 pt-4">
                   <p className="font-hand text-[1.9rem] leading-none">{memory.title}</p>
                   <p className="mt-2 flex items-center justify-between gap-2 text-sm text-night-950/60">
-                    <span className="truncate">📍 {memory.city}</span>
+                    <span className="flex min-w-0 items-center gap-1">
+                      <PinIcon size={14} className="shrink-0" />
+                      <span className="truncate">{memory.city}</span>
+                    </span>
                     <span className="shrink-0">{memory.memoryDate ? formatDate(memory.memoryDate) : 'suatu hari nanti'}</span>
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setFlipped(true)}
-                  className="mt-3 w-full text-center text-xs text-night-950/45"
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-night-950/35"
                 >
-                  ↻ ketuk untuk membalik
+                  <FlipIcon size={13} /> Balik kartu
                 </button>
               </div>
 
@@ -131,14 +135,19 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      memory.status === 'visited' ? 'bg-[#ffd6e0] text-[#c2185b]' : 'bg-[#e6e0ff] text-[#5b4bc4]'
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+                      memory.status === 'visited' ? 'bg-[#ffe1e8] text-[#c2185b]' : 'bg-[#ebe6ff] text-[#5b4bc4]'
                     }`}
                   >
-                    {memory.status === 'visited' ? '💗 Visited' : '⭐ Wishlist'}
+                    {memory.status === 'visited' ? <HeartIcon size={12} /> : <StarIcon size={12} />}
+                    {memory.status === 'visited' ? 'Visited' : 'Wishlist'}
                   </span>
-                  <button type="button" onClick={() => setFlipped(false)} className="text-xs text-night-950/50">
-                    ↻ balik
+                  <button
+                    type="button"
+                    onClick={() => setFlipped(false)}
+                    className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.14em] text-night-950/40"
+                  >
+                    <FlipIcon size={13} /> Foto
                   </button>
                 </div>
 
@@ -146,7 +155,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                   {memory.story ? (
                     <p className="whitespace-pre-line font-hand text-[1.45rem] leading-[28px]">{memory.story}</p>
                   ) : (
-                    <p className="font-hand text-xl text-night-950/40">Belum ada cerita… tulis lewat tombol Edit ✍️</p>
+                    <p className="font-hand text-xl text-night-950/40">Belum ada cerita. Tulis lewat tombol Edit.</p>
                   )}
                 </div>
 
@@ -182,17 +191,17 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                       <button
                         type="button"
                         onClick={() => openEdit(memory)}
-                        className="flex-1 rounded-xl bg-night-950 py-2.5 text-sm font-medium text-cream-50 active:scale-95"
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-night-950 py-2.5 text-sm font-medium text-cream-50 transition active:scale-95"
                       >
-                        ✏️ Edit
+                        <PencilIcon size={15} /> Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDelete(true)}
-                        className="rounded-xl bg-night-950/10 px-4 py-2.5 text-sm active:scale-95"
+                        className="grid place-items-center rounded-xl bg-night-950/[0.07] px-4 py-2.5 text-night-950/70 transition active:scale-95"
                         aria-label="Hapus kenangan"
                       >
-                        🗑️
+                        <TrashIcon size={17} />
                       </button>
                     </>
                   )}
@@ -206,7 +215,7 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
               aria-label="Tutup"
               className="absolute -right-3 -top-3 flex h-9 w-9 items-center justify-center rounded-full bg-night-950 text-cream-50 shadow-lg active:scale-90"
             >
-              ✕
+              <XIcon size={16} />
             </button>
           </motion.div>
         </motion.div>
