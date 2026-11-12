@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+
+/* ── Design tokens (Tailwind v4: konfigurasi di CSS, tanpa tailwind.config) ── */
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-hand: var(--font-caveat), 'Bradley Hand', cursive;
+
+  --color-night-950: #070716;
+  --color-night-900: #0d0d24;
+  --color-night-800: #17173a;
+  --color-blush-300: #ffc2d1;
+  --color-blush-400: #ff9fb8;
+  --color-blush-500: #ff7a9c;
+  --color-peach-300: #ffd3b0;
+  --color-cream-50: #fffaf2;
+  --color-cream-100: #fbf3e4;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--color-night-950);
+  color: var(--color-cream-50);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none; /* cegah "bounce" iOS saat menggeser peta */
+}
+
+/* Utilitas safe-area untuk notch / home indicator iPhone */
+@utility pt-safe {
+  padding-top: max(env(safe-area-inset-top), 1rem);
+}
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+}
+
+/* Bintang berkelip di lock screen */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
