@@ -64,6 +64,9 @@ export function TopBar({
   const picking = useWorld((s) => s.editor.picking);
   const backToGlobe = useWorld((s) => s.backToGlobe);
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (picking) setOpen(false);
+  }, [picking]);
   const t = THEMES[phase];
   const Icon = PHASE_ICON[phase];
 
@@ -115,7 +118,14 @@ export function TopBar({
           )}
         </AnimatePresence>
 
-        <div className="pointer-events-auto relative">
+        {/* Saat memilih titik di peta, menu settings disembunyikan agar layar fokus */}
+        <motion.div
+          className="pointer-events-auto relative"
+          initial={false}
+          animate={picking ? { opacity: 0, scale: 0.6, y: -8 } : { opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+          style={{ pointerEvents: picking ? 'none' : 'auto' }}
+        >
           {/* Baris ke kiri: rute + tema */}
           <AnimatePresence>
             {open && (
@@ -191,7 +201,7 @@ export function TopBar({
               </div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
       </header>
     </>
   );
