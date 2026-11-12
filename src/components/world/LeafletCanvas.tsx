@@ -3,7 +3,7 @@
 import 'leaflet/dist/leaflet.css';
 import { useEffect } from 'react';
 import L from 'leaflet';
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { AttributionControl, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import type { Memory, MemoryStatus } from '@/types/memory';
 import { TILE_ATTRIBUTION, TILE_URLS, type ThemeTokens } from '@/lib/theme';
 import { useWorld } from '@/store/world-store';
@@ -70,8 +70,8 @@ function Controller({ visible }: { visible: boolean }) {
       setMapView({ lat: c.lat, lng: c.lng, zoom: map.getZoom() });
     },
     zoomend() {
-      // Zoom out jauh → kembali ke globe
-      if (visible && map.getZoom() <= 3) backToGlobe();
+      // Zoom out jauh → kembali ke globe (kecuali sedang memilih titik)
+      if (visible && map.getZoom() <= 3 && !useWorld.getState().editor.picking) backToGlobe();
     },
     click() {
       select(null);
@@ -100,11 +100,13 @@ export default function LeafletCanvas({ memories, theme, visible }: LeafletCanva
       minZoom={2}
       maxZoom={19}
       zoomControl={false}
+      attributionControl={false}
       worldCopyJump
       className={`olw-map olw-map--${theme.tiles}`}
       style={{ width: '100%', height: '100%' }}
     >
       <TileLayer key={tileUrl} url={tileUrl} attribution={TILE_ATTRIBUTION} subdomains="abcd" maxZoom={20} />
+      <AttributionControl position="bottomleft" prefix={false} />
       <Controller visible={visible} />
       {memories.map((m) => (
         <Marker

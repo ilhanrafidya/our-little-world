@@ -2,7 +2,7 @@
 
 Peta kenangan privat berdua: Globe 3D ⇄ Peta 2D, Polaroid memories, di-deploy gratis di Vercel.
 
-**Progres:** ✅ Tahap 1 (blueprint) · ✅ Tahap 2 (backend & auth) · ✅ Tahap 3 (hybrid map) · ⏳ Tahap 4 (Polaroid, Add Spot, polish)
+**Progres:** ✅ Tahap 1 (blueprint) · ✅ Tahap 2 (backend & auth) · ✅ Tahap 3 (hybrid map) · ✅ Tahap 4 (Polaroid, Add Spot, polish)
 
 ---
 
@@ -98,3 +98,17 @@ await (await fetch(`/api/memories/${memory.id}`, { method: 'DELETE' })).json();
 | POST | `/api/upload` | token client-upload Vercel Blob (dipakai `upload()` di Tahap 4) |
 
 Semua endpoint (kecuali unlock/lock) menolak dengan `401` jika belum unlock.
+
+---
+
+## Pakai di HP seperti aplikasi
+
+- **iPhone (Safari):** buka situsnya → tombol Share → **Add to Home Screen**.
+- **Android (Chrome):** menu ⋮ → **Add to Home screen / Install app**.
+
+## Fitur utama
+
+- Globe 3D (tema mengikuti jam: pagi/siang/senja/malam) + flight arcs + ▶ Play Journey
+- Tap kota / zoom → peta 2D; pin 💗 Visited & ⭐ Wishlist
+- Tap pin → kartu Polaroid yang bisa dibalik (foto ⇄ cerita + lagu Spotify), Edit & Hapus
+- Tombol **+** → tambah kenangan: foto (otomatis dikompres), lokasi GPS / pilih di peta, kota otomatis terisi

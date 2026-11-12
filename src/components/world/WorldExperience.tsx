@@ -9,7 +9,9 @@ import Starfield from '@/components/ui/Starfield';
 import GlobeView from './GlobeView';
 import MapView from './MapView';
 import { useTimeTheme } from './useTimeTheme';
-import { GlobeHint, JourneyControls, MemoryPeek, TopBar } from './Overlays';
+import { AddSpotFab, GlobeHint, JourneyControls, PickOverlay, TopBar } from './Overlays';
+import PolaroidModal from '@/components/memory/PolaroidModal';
+import AddSpotDrawer from '@/components/spot-form/AddSpotDrawer';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -21,6 +23,11 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 export default function WorldExperience({ initialMemories }: { initialMemories: Memory[] }) {
   const stored = useWorld((s) => s.memories);
   const memories = stored ?? initialMemories;
+
+  // Data server → store client (setelah itu tambah/edit/hapus langsung memperbarui globe & peta)
+  useEffect(() => {
+    useWorld.getState().setMemories(initialMemories);
+  }, [initialMemories]);
 
   const cities = useMemo(() => groupByCity(memories), [memories]);
   const journey = useMemo(() => buildJourney(cities), [cities]);
@@ -81,7 +88,10 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
       <TopBar phase={phase} override={override} onCycleTheme={cycle} />
       <GlobeHint empty={memories.length === 0} />
       <JourneyControls journey={journey} />
-      <MemoryPeek memory={selected} />
+      <AddSpotFab />
+      <PickOverlay />
+      <PolaroidModal memory={selected} />
+      <AddSpotDrawer />
     </main>
   );
 }

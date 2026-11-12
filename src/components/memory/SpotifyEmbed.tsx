@@ -1,0 +1,30 @@
+'use client';
+
+import { spotifyEmbedUrl } from '@/lib/spotify';
+
+/** Pemutar resmi Spotify (compact). Penuh jika login Spotify di browser; selain itu cuplikan ±30 dtk. */
+export default function SpotifyEmbed({ url }: { url: string }) {
+  const src = spotifyEmbedUrl(url);
+  if (!src) return null;
+  return (
+    <div className="space-y-1.5">
+      <iframe
+        title="Lagu kenangan"
+        src={src}
+        width="100%"
+        height="80"
+        loading="lazy"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        className="block rounded-xl border-0"
+      />
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-xs font-medium text-[#1a7f45] underline-offset-2 hover:underline"
+      >
+        ▶ Buka lagu lengkap di Spotify
+      </a>
+    </div>
+  );
+}

@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   title: APP_NAME,
   description: 'Peta kenangan kecil kita berdua.',
   robots: { index: false, follow: false },
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [{ url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' }],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }],
+  },
   appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: 'black-translucent' },
   formatDetection: { telephone: false },
 };

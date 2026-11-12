@@ -5,9 +5,9 @@ import type { City } from '@/lib/geo';
 import { formatDate } from '@/lib/format';
 import type { Phase, ThemeOverride } from '@/lib/theme';
 import { THEMES } from '@/lib/theme';
-import type { Memory } from '@/types/memory';
 import { useWorld } from '@/store/world-store';
 import LockButton from '@/components/auth/LockButton';
+import { reverseGeocode } from '@/lib/geocode';
 
 const glass =
   'border border-white/15 bg-[var(--panel)] text-cream-50 shadow-lg shadow-black/20 backdrop-blur-xl';
@@ -23,13 +23,16 @@ export function TopBar({
   onCycleTheme: () => void;
 }) {
   const mode = useWorld((s) => s.mode);
+  const picking = useWorld((s) => s.editor.picking);
   const backToGlobe = useWorld((s) => s.backToGlobe);
   const t = THEMES[phase];
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 px-4 pt-safe">
       <AnimatePresence mode="wait" initial={false}>
-        {mode === 'map' ? (
+        {picking ? (
+          <span key="picking" />
+        ) : mode === 'map' ? (
           <motion.button
             key="back"
             initial={{ opacity: 0, x: -12 }}
@@ -120,50 +123,83 @@ export function GlobeHint({ empty }: { empty: boolean }) {
   if (mode !== 'globe' || playing) return null;
   return (
     <p className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-10 px-6 text-center text-xs text-cream-50/60">
-      {empty ? 'Belum ada kenangan di peta ini 💫 — zoom ke mana saja untuk membuka peta' : 'Ketuk kota atau zoom untuk masuk ke peta'}
+      {empty ? 'Belum ada kenangan — tekan + untuk menambah yang pertama 💫' : 'Ketuk kota atau zoom untuk masuk ke peta'}
     </p>
   );
 }
 
-// ── Kartu ringkas saat pin diklik (Polaroid lengkap menyusul) ──
-export function MemoryPeek({ memory }: { memory: Memory | null }) {
-  const select = useWorld((s) => s.select);
-  const mode = useWorld((s) => s.mode);
+// ── Tombol "+" Add Spot ────────────────────────────────────────
+export function AddSpotFab() {
+  const openCreate = useWorld((s) => s.openCreate);
+  const editorOpen = useWorld((s) => s.editor.open);
+  const playing = useWorld((s) => s.journey.playing);
+  const selected = useWorld((s) => s.selectedMemoryId);
+  const hidden = editorOpen || playing || !!selected;
 
   return (
     <AnimatePresence>
-      {memory && mode === 'map' && (
-        <motion.div
-          key={memory.id}
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 40, opacity: 0 }}
-          transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-safe"
+      {!hidden && (
+        <motion.button
+          key="fab"
+          initial={{ scale: 0, rotate: -90 }}
+          animate={{ scale: 1, rotate: 0 }}
+          exit={{ scale: 0, rotate: 90 }}
+          transition={{ type: 'spring', damping: 18, stiffness: 260 }}
+          onClick={openCreate}
+          aria-label="Tambah kenangan"
+          className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-4xl font-light leading-none text-night-950 shadow-xl shadow-black/35 active:scale-90"
         >
-          <div className={`pointer-events-auto mb-2 flex w-full max-w-md items-center gap-3 rounded-2xl p-3 ${glass}`}>
-            {memory.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={memory.photo.url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
-            ) : (
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/10 text-2xl">
-                {memory.status === 'visited' ? '💗' : '⭐'}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{memory.title}</p>
-              <p className="truncate text-sm text-cream-50/70">
-                {memory.city}
-                {memory.memoryDate ? ` · ${formatDate(memory.memoryDate)}` : ''}
-              </p>
-              {memory.story && <p className="mt-0.5 line-clamp-1 text-xs text-cream-50/60">{memory.story}</p>}
+          +
+        </motion.button>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ── Mode pilih titik di peta (crosshair di tengah layar) ───────
+export function PickOverlay() {
+  const picking = useWorld((s) => s.editor.picking);
+  const finishPicking = useWorld((s) => s.finishPicking);
+  const cancelPicking = useWorld((s) => s.cancelPicking);
+  const updateDraft = useWorld((s) => s.updateDraft);
+
+  async function confirm() {
+    const v = useWorld.getState().mapView;
+    if (!v) return;
+    finishPicking(v.lat, v.lng);
+    const draft = useWorld.getState().draft;
+    if (draft && !draft.city.trim()) {
+      const { city, country } = await reverseGeocode(v.lat, v.lng);
+      const latest = useWorld.getState().draft;
+      if (latest && !latest.city.trim() && city) updateDraft({ city, country: latest.country || country || '' });
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {picking && (
+        <motion.div key="pick" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none fixed inset-0 z-40">
+          <p className={`absolute inset-x-4 top-[calc(env(safe-area-inset-top)+4.25rem)] mx-auto max-w-sm rounded-2xl px-4 py-3 text-center text-sm ${glass}`}>
+            Geser peta sampai pin tepat di lokasi kenangan
+          </p>
+          {/* Pin di tengah layar — ujungnya menunjuk titik tengah peta */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
+            <div className="olw-pin olw-pin--visited" style={{ transform: 'rotate(-45deg)' }}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 20.5s-7.5-4.6-9.6-9.1C.9 8 2.9 4.5 6.4 4.5c2.1 0 3.6 1.2 4.4 2.5h2.4c.8-1.3 2.3-2.5 4.4-2.5 3.5 0 5.5 3.5 4 6.9-2.1 4.5-9.6 9.1-9.6 9.1z" />
+              </svg>
             </div>
+          </div>
+          <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-night-950/60" />
+          <div className="pointer-events-auto absolute inset-x-0 bottom-0 flex justify-center gap-2 px-4 pb-safe">
+            <button onClick={cancelPicking} className={`mb-2 rounded-2xl px-5 py-4 text-sm font-medium active:scale-95 ${glass}`}>
+              Batal
+            </button>
             <button
-              onClick={() => select(null)}
-              aria-label="Tutup"
-              className="self-start rounded-full p-1.5 text-cream-50/70 active:scale-90"
+              onClick={confirm}
+              className="mb-2 flex-1 max-w-xs rounded-2xl bg-linear-to-r from-[var(--accent)] to-[var(--accent2)] px-5 py-4 font-semibold text-night-950 shadow-lg active:scale-95"
             >
-              ✕
+              Pakai titik ini 📍
             </button>
           </div>
         </motion.div>
