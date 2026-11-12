@@ -466,7 +466,22 @@ function PlaceSearch() {
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showList, setShowList] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Tap/geser di luar kotak pencarian (mis. peta) → tutup daftar hasil & keyboard
+  useEffect(() => {
+    if (!showList) return;
+    const onDown = (e: PointerEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+        setShowList(false);
+        inputRef.current?.blur();
+      }
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [showList]);
 
   // Cari otomatis setelah berhenti mengetik (hemat request)
   useEffect(() => {
@@ -482,8 +497,16 @@ function PlaceSearch() {
       try {
         const v = useWorld.getState().mapView;
         const r = await searchPlaces(query, v ?? undefined, ctrl.signal);
-        setResults(r);
-        setError(r.length === 0 ? 'No places found. Try a nearby street or landmark.' : null);
+        // buang hasil dobel (nama + keterangan sama)
+        const seen = new Set<string>();
+        const unique = r.filter((x) => {
+          const k = `${x.name}|${x.detail}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        setResults(unique);
+        setError(unique.length === 0 ? 'No places found. Try a nearby street or landmark.' : null);
       } catch (err) {
         if (!ctrl.signal.aborted) setError(err instanceof Error ? err.message : 'Search failed.');
       } finally {
@@ -498,6 +521,7 @@ function PlaceSearch() {
 
   function choose(r: PlaceResult) {
     inputRef.current?.blur();
+    setShowList(false);
     setResults([]);
     setQ(r.name);
     enterMap({ center: [r.lat, r.lng], zoom: 17 });
@@ -512,13 +536,17 @@ function PlaceSearch() {
   }
 
   return (
-    <div className="pointer-events-auto absolute inset-x-4 top-[calc(env(safe-area-inset-top)+1rem)] mx-auto max-w-md">
+    <div ref={boxRef} className="pointer-events-auto absolute inset-x-4 top-[calc(env(safe-area-inset-top)+1rem)] z-20 mx-auto max-w-md">
       <div className={`flex h-12 items-center gap-2.5 rounded-2xl px-4 ${glass}`}>
         <SearchIcon size={18} className="shrink-0 opacity-60" />
         <input
           ref={inputRef}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setShowList(true);
+          }}
+          onFocus={() => setShowList(true)}
           placeholder="Search a place…"
           enterKeyHint="search"
           autoCorrect="off"
@@ -528,7 +556,13 @@ function PlaceSearch() {
           <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-cream-50/25 border-t-cream-50" />
         ) : (
           q && (
-            <button type="button" onClick={() => setQ('')} aria-label="Clear" className="shrink-0 opacity-60 active:scale-90">
+            <button
+              type="button"
+              onClick={() => {
+                setQ('');
+                setShowList(false);
+              }}
+              aria-label="Clear" className="shrink-0 opacity-60 active:scale-90">
               <XIcon size={16} />
             </button>
           )
@@ -536,7 +570,7 @@ function PlaceSearch() {
       </div>
 
       <AnimatePresence>
-        {(results.length > 0 || error) && (
+        {showList && (results.length > 0 || error) && (
           <motion.ul
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
