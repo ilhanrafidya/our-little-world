@@ -266,6 +266,23 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes }
     if (g) requestAnimationFrame(() => updateMarkers(g.pointOfView()));
   }, [cities, updateMarkers]);
 
+  // ── Panel (album / form) terbuka → hentikan render globe sementara ──
+  // Globe tertutup panel, jadi HP bisa memakai seluruh tenaganya untuk animasi blur & tombol.
+  const sheetOpen = useWorld((s) => s.albumOpen || (s.editor.open && !s.editor.picking));
+  useEffect(() => {
+    const g = globeRef.current;
+    if (!g || mode !== 'globe') return;
+    if (sheetOpen) {
+      g.pauseAnimation();
+      return;
+    }
+    // lanjut setelah panel selesai turun
+    const t = setTimeout(() => {
+      if (useWorld.getState().mode === 'globe') g.resumeAnimation();
+    }, 380);
+    return () => clearTimeout(t);
+  }, [sheetOpen, mode]);
+
   // ── Back to Globe: animasi "terbang keluar" dari posisi peta terakhir ──
   const prevMode = useRef(mode);
   useEffect(() => {
