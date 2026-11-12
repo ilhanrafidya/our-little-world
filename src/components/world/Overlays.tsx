@@ -306,7 +306,7 @@ export function GlobeHint({ empty }: { empty: boolean }) {
   return (
     <p
       className={`pointer-events-none fixed inset-x-0 z-10 px-24 text-center text-xs font-medium tracking-tight text-cream-50/55 ${
-        empty ? 'bottom-[calc(max(env(safe-area-inset-bottom),1rem)+1.75rem)]' : 'bottom-[calc(max(env(safe-area-inset-bottom),1rem)+4.5rem)]'
+        empty ? 'bottom-[calc(max(env(safe-area-inset-bottom),1rem)+1.75rem)]' : 'bottom-[calc(max(env(safe-area-inset-bottom),1rem)+3.9rem)]'
       }`}
     >
       {empty ? 'No memories yet — tap + to add your first' : 'Tap a city or zoom in to explore'}
