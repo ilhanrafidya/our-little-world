@@ -38,6 +38,25 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
   const selectedId = useWorld((s) => s.selectedMemoryId);
   const selected = useMemo(() => memories.find((m) => m.id === selectedId) ?? null, [memories, selectedId]);
 
+  // Opsi garis rute (default mati agar Play Journey terasa "mengungkap")
+  const [showRoutes, setShowRoutes] = useState(false);
+  useEffect(() => {
+    try {
+      setShowRoutes(localStorage.getItem('olw-routes') === '1');
+    } catch {
+      /* abaikan */
+    }
+  }, []);
+  const toggleRoutes = () =>
+    setShowRoutes((v) => {
+      try {
+        localStorage.setItem('olw-routes', v ? '0' : '1');
+      } catch {
+        /* abaikan */
+      }
+      return !v;
+    });
+
   // Leaflet baru di-mount saat pertama kali masuk peta, lalu dipertahankan
   const [mapMounted, setMapMounted] = useState(false);
   useEffect(() => {
@@ -68,7 +87,7 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
         style={{ pointerEvents: isGlobe ? 'auto' : 'none' }}
         aria-hidden={!isGlobe}
       >
-        <GlobeView cities={cities} arcs={arcs} journey={journey} theme={tokens} />
+        <GlobeView cities={cities} arcs={arcs} journey={journey} theme={tokens} showRoutes={showRoutes} />
       </motion.div>
 
       {/* Layer Peta 2D */}
@@ -85,7 +104,14 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
         </motion.div>
       )}
 
-      <TopBar phase={phase} override={override} onCycleTheme={cycle} />
+      <TopBar
+        phase={phase}
+        override={override}
+        onCycleTheme={cycle}
+        showRoutes={showRoutes}
+        onToggleRoutes={toggleRoutes}
+        hasRoutes={arcs.length > 0}
+      />
       <GlobeHint empty={memories.length === 0} />
       <JourneyControls journey={journey} />
       <AddSpotFab />

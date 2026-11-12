@@ -13,6 +13,7 @@ import {
   MoonIcon,
   PauseIcon,
   PlayIcon,
+  RouteIcon,
   PlusIcon,
   SkipIcon,
   StopIcon,
@@ -31,10 +32,16 @@ export function TopBar({
   phase,
   override,
   onCycleTheme,
+  showRoutes,
+  onToggleRoutes,
+  hasRoutes,
 }: {
   phase: Phase;
   override: ThemeOverride;
   onCycleTheme: () => void;
+  showRoutes: boolean;
+  onToggleRoutes: () => void;
+  hasRoutes: boolean;
 }) {
   const mode = useWorld((s) => s.mode);
   const picking = useWorld((s) => s.editor.picking);
@@ -72,6 +79,19 @@ export function TopBar({
       </AnimatePresence>
 
       <div className="pointer-events-auto flex items-center gap-2">
+        {mode === 'globe' && hasRoutes && (
+          <button
+            onClick={onToggleRoutes}
+            aria-label={showRoutes ? 'Hide routes' : 'Show routes'}
+            aria-pressed={showRoutes}
+            title={showRoutes ? 'Hide routes' : 'Show routes'}
+            className={`grid h-10 w-10 place-items-center rounded-full transition active:scale-90 ${
+              showRoutes ? 'border border-transparent bg-cream-50 text-night-950 shadow-lg' : glass
+            }`}
+          >
+            <RouteIcon size={18} />
+          </button>
+        )}
         <button
           onClick={onCycleTheme}
           aria-label="Change theme"

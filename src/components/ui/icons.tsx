@@ -134,3 +134,10 @@ export const SkipIcon = (p: P) => (
     <rect x="17" y="5.4" width="2.2" height="13.2" rx="1" />
   </Base>
 );
+export const RouteIcon = (p: P) => (
+  <Base {...p}>
+    <circle cx="6" cy="18" r="2.2" />
+    <circle cx="18" cy="6" r="2.2" />
+    <path d="M8.2 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.8" strokeDasharray="2.2 2.4" />
+  </Base>
+);

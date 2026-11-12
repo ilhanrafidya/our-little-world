@@ -91,11 +91,16 @@ export interface GlobeCanvasProps {
   arcs: Arc[];
   journey: City[];
   theme: ThemeTokens;
+  /** tampilkan garis rute saat globe diam (opsi pengguna, default mati) */
+  showRoutes: boolean;
 }
 
-export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanvasProps) {
+export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes }: GlobeCanvasProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const busyRef = useRef(false); // sedang animasi kamera → abaikan ambang zoom
+  // true hanya saat jari benar-benar menggeser/mencubit globe (bukan animasi atau sisa gerakan)
+  const gestureRef = useRef(false);
+  const gestureTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const citiesRef = useRef(cities);
   citiesRef.current = cities;
 
@@ -211,7 +216,8 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
     ({ lat, lng, altitude }: { lat: number; lng: number; altitude: number }) => {
       (material.uniforms.globeRotation!.value as THREE.Vector2).set(lng, lat);
       updateMarkers({ lat, lng, altitude });
-      if (busyRef.current || modeRef.current !== 'globe' || altitude > ENTER_MAP_ALTITUDE) return;
+      if (busyRef.current || !gestureRef.current || modeRef.current !== 'globe' || altitude > ENTER_MAP_ALTITUDE) return;
+      gestureRef.current = false;
 
       busyRef.current = true;
       const city = nearestCity(lat, lng, citiesRef.current, CITY_SNAP_KM);
@@ -235,7 +241,14 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
       c.enableDamping = true;
       // Pengguna mulai menggeser globe → hentikan Play Journey
       c.addEventListener('start', () => {
+        clearTimeout(gestureTimer.current);
+        gestureRef.current = true;
         if (useWorld.getState().journey.playing) useWorld.getState().stopJourney();
+      });
+      c.addEventListener('end', () => {
+        // beri waktu untuk efek "meluncur" (damping) setelah jari diangkat
+        clearTimeout(gestureTimer.current);
+        gestureTimer.current = setTimeout(() => (gestureRef.current = false), 450);
       });
     }
 
@@ -261,11 +274,13 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
     if (!g) return;
 
     if (mode === 'map') {
+      gestureRef.current = false;
       const t = setTimeout(() => g.pauseAnimation(), 750);
       return () => clearTimeout(t);
     }
 
     if (prev === 'map' && mode === 'globe') {
+      gestureRef.current = false;
       g.resumeAnimation();
       busyRef.current = true;
       const v = useWorld.getState().mapView;
@@ -321,6 +336,8 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
   }, [journeyState.playing, journey, controls, stopJourney, material, updateMarkers]);
 
   // ── data visual ──
+  const visibleArcs = useMemo(() => (showRoutes && !journeyState.playing ? arcs : []), [showRoutes, journeyState.playing, arcs]);
+
   // Gelombang cahaya hanya saat tiba di kota (Play Journey)
   const rings = useMemo(() => (burst ? [{ lat: burst.lat, lng: burst.lng }] : []), [burst]);
 
@@ -355,6 +372,21 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
       ringPropagationSpeed={3}
       ringRepeatPeriod={450}
       ringAltitude={0.003}
+      // Garis rute (opsional)
+      arcsData={visibleArcs}
+      arcStartLat="startLat"
+      arcStartLng="startLng"
+      arcEndLat="endLat"
+      arcEndLng="endLng"
+      arcColor={(d: object) =>
+        (d as Arc).kind === 'wish' ? [`rgba(${theme.wishRgb},0.7)`, `rgba(${theme.wishRgb},0.2)`] : theme.arc
+      }
+      arcStroke={(d: object) => ((d as Arc).kind === 'wish' ? 0.22 : 0.45)}
+      arcDashLength={(d: object) => ((d as Arc).kind === 'wish' ? 0.04 : 0.55)}
+      arcDashGap={(d: object) => ((d as Arc).kind === 'wish' ? 0.04 : 0.2)}
+      arcDashAnimateTime={(d: object) => ((d as Arc).kind === 'wish' ? 0 : 2600)}
+      arcAltitudeAutoScale={0.45}
+      arcsTransitionDuration={600}
     />
   );
 }
