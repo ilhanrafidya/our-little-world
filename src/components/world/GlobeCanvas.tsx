@@ -122,8 +122,8 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
     const loader = new THREE.TextureLoader();
     const day = loader.load(DAY_TEXTURE);
     const night = loader.load(NIGHT_TEXTURE);
-    day.colorSpace = THREE.SRGBColorSpace;
-    night.colorSpace = THREE.SRGBColorSpace;
+    // JANGAN set colorSpace = SRGB: ShaderMaterial custom tidak mengonversi balik ke sRGB,
+    // sehingga warna jadi jauh lebih gelap. Biarkan nilai piksel lewat apa adanya.
     return new THREE.ShaderMaterial({
       uniforms: {
         dayTexture: { value: day },
