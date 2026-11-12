@@ -7,6 +7,7 @@ import { nearestCity, type Arc, type City } from '@/lib/geo';
 import { subsolarPoint } from '@/lib/sun';
 import type { ThemeTokens } from '@/lib/theme';
 import { useWorld } from '@/store/world-store';
+import { runJourney } from './journeyEngine';
 
 /**
  * Implementasi Globe 3D. HANYA di-load di browser lewat GlobeView (dynamic, ssr:false)
@@ -84,7 +85,6 @@ type Controls = {
   removeEventListener: (type: string, fn: () => void) => void;
 };
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface GlobeCanvasProps {
   cities: City[];
@@ -103,7 +103,6 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
   const journeyState = useWorld((s) => s.journey);
   const enterMap = useWorld((s) => s.enterMap);
   const stopJourney = useWorld((s) => s.stopJourney);
-  const setJourneyIndex = useWorld((s) => s.setJourneyIndex);
 
   const modeRef = useRef(mode);
   modeRef.current = mode;
@@ -241,7 +240,8 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
     }
   }, [mode, controls]);
 
-  // ── Play Journey: kamera terbang berurutan antar kota ──
+  // ── Play Journey (lihat journeyEngine.ts) ──
+  const [burst, setBurst] = useState<City | null>(null);
   useEffect(() => {
     if (!journeyState.playing) return;
     const g = globeRef.current;
@@ -249,49 +249,51 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
       stopJourney();
       return;
     }
-
-    let cancelled = false;
     const c = controls();
     if (c) c.autoRotate = false;
     busyRef.current = true;
 
-    (async () => {
-      for (let i = 0; i < journey.length; i++) {
-        if (cancelled) return;
-        const city = journey[i]!;
-        setJourneyIndex(i);
-        g.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.2 }, 2200);
-        await sleep(3300);
-      }
-      if (cancelled) return;
-      const pov = g.pointOfView();
-      g.pointOfView({ lat: pov.lat, lng: pov.lng, altitude: 2.2 }, 1500);
-      await sleep(1500);
-      if (!cancelled) stopJourney();
-    })();
+    let burstTimer: ReturnType<typeof setTimeout> | undefined;
+    const run = runJourney(g, journey, theme.accent, {
+      onPov: (pov) => (material.uniforms.globeRotation!.value as THREE.Vector2).set(pov.lng, pov.lat),
+      onArrive: (city) => {
+        setBurst(city);
+        clearTimeout(burstTimer);
+        burstTimer = setTimeout(() => setBurst(null), 2200);
+      },
+    });
 
     return () => {
-      cancelled = true;
+      run.cancel();
+      clearTimeout(burstTimer);
+      setBurst(null);
       busyRef.current = false;
       const cc = controls();
       if (cc) cc.autoRotate = true;
     };
-  }, [journeyState.playing, journey, controls, setJourneyIndex, stopJourney]);
+    // theme.accent sengaja tidak jadi dependency: ganti tema tidak boleh mengulang journey
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journeyState.playing, journey, controls, stopJourney, material]);
 
   // ── data visual ──
-  const activeArc = journeyState.playing ? journeyState.index - 1 : null;
+  const playing = journeyState.playing;
 
   const arcColor = useCallback(
     (d: object) => {
       const a = d as Arc;
+      // Saat journey, rute digambar ulang oleh engine → arc bawaan diredupkan
+      if (playing) return ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.03)'];
       if (a.kind === 'wish') return [`rgba(${theme.wishRgb},0.75)`, `rgba(${theme.wishRgb},0.2)`];
-      if (activeArc !== null && a.index !== activeArc) return ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.05)'];
       return theme.arc;
     },
-    [theme, activeArc],
+    [theme, playing],
   );
 
-  const visitedCities = useMemo(() => cities.filter((c) => c.status === 'visited'), [cities]);
+  type Ring = { lat: number; lng: number; burst: boolean };
+  const rings = useMemo<Ring[]>(() => {
+    const base: Ring[] = cities.filter((c) => c.status === 'visited').map((c) => ({ lat: c.lat, lng: c.lng, burst: false }));
+    return burst ? [...base, { lat: burst.lat, lng: burst.lng, burst: true }] : base;
+  }, [cities, burst]);
 
   if (size.w === 0) return null;
 
@@ -329,13 +331,15 @@ export default function GlobeCanvas({ cities, arcs, journey, theme }: GlobeCanva
       labelResolution={3}
       onLabelClick={(d: object) => flyIntoCity(d as City)}
       // Denyut di kota yang sudah dikunjungi
-      ringsData={visitedCities}
+      ringsData={rings}
       ringLat="lat"
       ringLng="lng"
-      ringColor={() => (t: number) => `rgba(${theme.accentRgb},${Math.max(0, 1 - t)})`}
-      ringMaxRadius={2.2}
-      ringPropagationSpeed={1.4}
-      ringRepeatPeriod={1600}
+      ringColor={(d: object) => (t: number) =>
+        (d as Ring).burst ? `rgba(255,250,242,${Math.max(0, 1 - t)})` : `rgba(${theme.accentRgb},${Math.max(0, 1 - t)})`
+      }
+      ringMaxRadius={(d: object) => ((d as Ring).burst ? 5 : 2.2)}
+      ringPropagationSpeed={(d: object) => ((d as Ring).burst ? 3.5 : 1.4)}
+      ringRepeatPeriod={(d: object) => ((d as Ring).burst ? 420 : 1600)}
       // Flight arcs
       arcsData={arcs}
       arcStartLat="startLat"

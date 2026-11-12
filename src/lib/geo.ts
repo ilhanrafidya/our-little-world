@@ -16,6 +16,8 @@ export interface City {
   count: number;
   /** tanggal kenangan paling awal (YYYY-MM-DD) — untuk urutan journey */
   firstDate: string | null;
+  /** foto kenangan paling awal di kota ini (untuk kartu mini Play Journey) */
+  coverUrl: string | null;
   bounds: Bounds;
 }
 
@@ -57,6 +59,10 @@ export function groupByCity(memories: Memory[]): City[] {
       .filter((d): d is string => !!d)
       .sort();
 
+    const withPhoto = ms
+      .filter((m) => m.photo)
+      .sort((a, b) => (a.memoryDate ?? '9999').localeCompare(b.memoryDate ?? '9999'));
+
     return {
       key,
       name: ms[0]!.city,
@@ -66,6 +72,7 @@ export function groupByCity(memories: Memory[]): City[] {
       status: ms.some((m) => m.status === 'visited') ? 'visited' : 'wishlist',
       count: ms.length,
       firstDate: dates[0] ?? null,
+      coverUrl: withPhoto[0]?.photo?.url ?? null,
       bounds: [
         [minLat, minLng],
         [maxLat, maxLng],

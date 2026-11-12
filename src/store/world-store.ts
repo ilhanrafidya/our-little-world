@@ -30,6 +30,28 @@ export interface SpotDraft {
   removePhoto: boolean;
 }
 
+export type JourneyPhase = 'intro' | 'travel' | 'arrive' | 'outro';
+export interface JourneyState {
+  playing: boolean;
+  paused: boolean;
+  /** indeks kota tujuan saat ini di daftar journey */
+  index: number;
+  phase: JourneyPhase | null;
+  vehicle: 'plane' | 'car' | null;
+  summary: { cities: number; km: number; memories: number } | null;
+  skipNonce: number;
+}
+
+const IDLE_JOURNEY: JourneyState = {
+  playing: false,
+  paused: false,
+  index: -1,
+  phase: null,
+  vehicle: null,
+  summary: null,
+  skipNonce: 0,
+};
+
 interface EditorState {
   open: boolean;
   mode: 'create' | 'edit';
@@ -46,7 +68,7 @@ interface WorldState {
   mapView: { lat: number; lng: number; zoom: number } | null;
   mapRequest: MapRequest | null;
   selectedMemoryId: string | null;
-  journey: { playing: boolean; index: number };
+  journey: JourneyState;
   editor: EditorState;
   draft: SpotDraft | null;
 
@@ -61,7 +83,9 @@ interface WorldState {
 
   startJourney: () => void;
   stopJourney: () => void;
-  setJourneyIndex: (i: number) => void;
+  setJourney: (patch: Partial<JourneyState>) => void;
+  togglePauseJourney: () => void;
+  skipJourney: () => void;
 
   openCreate: () => void;
   openEdit: (memory: Memory) => void;
@@ -110,7 +134,7 @@ export const useWorld = create<WorldState>((set, get) => ({
   mapView: null,
   mapRequest: null,
   selectedMemoryId: null,
-  journey: { playing: false, index: -1 },
+  journey: IDLE_JOURNEY,
   editor: { open: false, mode: 'create', memoryId: null, picking: false },
   draft: null,
 
@@ -137,7 +161,7 @@ export const useWorld = create<WorldState>((set, get) => ({
       focusCityKey: cityKey,
       mapRequest: { center, zoom, bounds, nonce: ++nonce },
       mapView: { lat: center[0], lng: center[1], zoom: zoom ?? 13 },
-      journey: { playing: false, index: -1 },
+      journey: IDLE_JOURNEY,
     }),
   backToGlobe: () => {
     if (get().mode === 'globe' || get().editor.picking) return;
@@ -147,9 +171,11 @@ export const useWorld = create<WorldState>((set, get) => ({
   select: (selectedMemoryId) => set({ selectedMemoryId }),
 
   // ── journey ──
-  startJourney: () => set({ journey: { playing: true, index: -1 }, selectedMemoryId: null }),
-  stopJourney: () => set({ journey: { playing: false, index: -1 } }),
-  setJourneyIndex: (index) => set((s) => ({ journey: { ...s.journey, index } })),
+  startJourney: () => set({ journey: { ...IDLE_JOURNEY, playing: true, phase: 'intro' }, selectedMemoryId: null }),
+  stopJourney: () => set({ journey: IDLE_JOURNEY }),
+  setJourney: (patch) => set((s) => ({ journey: { ...s.journey, ...patch } })),
+  togglePauseJourney: () => set((s) => ({ journey: { ...s.journey, paused: !s.journey.paused } })),
+  skipJourney: () => set((s) => ({ journey: { ...s.journey, skipNonce: s.journey.skipNonce + 1 } })),
 
   // ── editor Add/Edit Spot ──
   openCreate: () => {
@@ -159,7 +185,7 @@ export const useWorld = create<WorldState>((set, get) => ({
       editor: { open: true, mode: 'create', memoryId: null, picking: false },
       draft: emptyDraft(mode === 'map' && mapView ? mapView.lat : null, mode === 'map' && mapView ? mapView.lng : null),
       selectedMemoryId: null,
-      journey: { playing: false, index: -1 },
+      journey: IDLE_JOURNEY,
     });
   },
   openEdit: (m) => {

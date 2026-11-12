@@ -122,3 +122,15 @@ export const ArrowRightIcon = (p: P) => (
     <path d="M5 12h14M13 6l6 6-6 6" />
   </Base>
 );
+export const PauseIcon = (p: P) => (
+  <Base {...p} fill="currentColor" stroke="none">
+    <rect x="6.5" y="5" width="4" height="14" rx="1.2" />
+    <rect x="13.5" y="5" width="4" height="14" rx="1.2" />
+  </Base>
+);
+export const SkipIcon = (p: P) => (
+  <Base {...p} fill="currentColor" stroke="none">
+    <path d="M5 6.2v11.6a.8.8 0 0 0 1.25.66L14 13v4.8a.8.8 0 0 0 1.6 0V6.2a.8.8 0 0 0-1.6 0V11L6.25 5.54A.8.8 0 0 0 5 6.2z" />
+    <rect x="17" y="5.4" width="2.2" height="13.2" rx="1" />
+  </Base>
+);
