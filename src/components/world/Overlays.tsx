@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { haversineKm, type City } from '@/lib/geo';
 import { formatDate } from '@/lib/format';
 import type { Phase, ThemeOverride } from '@/lib/theme';
 import { THEMES } from '@/lib/theme';
-import { useWorld } from '@/store/world-store';
+import { useWorld, type SpotDraft } from '@/store/world-store';
 import LockButton from '@/components/auth/LockButton';
-import { reverseGeocode } from '@/lib/geocode';
+import { reverseGeocode, searchPlaces, type PlaceResult } from '@/lib/geocode';
 import {
   AlbumIcon,
+  PinIcon,
+  SearchIcon,
+  XIcon,
   GearIcon,
   GlobeIcon,
   MuteIcon,
@@ -455,6 +458,122 @@ export function AlbumButton() {
   );
 }
 
+// ── Cari tempat (di mode pilih titik) ─────────────────────────
+function PlaceSearch() {
+  const enterMap = useWorld((s) => s.enterMap);
+  const updateDraft = useWorld((s) => s.updateDraft);
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<PlaceResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Cari otomatis setelah berhenti mengetik (hemat request)
+  useEffect(() => {
+    const query = q.trim();
+    if (query.length < 3) {
+      setResults([]);
+      setError(null);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const v = useWorld.getState().mapView;
+        const r = await searchPlaces(query, v ?? undefined, ctrl.signal);
+        setResults(r);
+        setError(r.length === 0 ? 'No places found. Try a nearby street or landmark.' : null);
+      } catch (err) {
+        if (!ctrl.signal.aborted) setError(err instanceof Error ? err.message : 'Search failed.');
+      } finally {
+        if (!ctrl.signal.aborted) setLoading(false);
+      }
+    }, 450);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [q]);
+
+  function choose(r: PlaceResult) {
+    inputRef.current?.blur();
+    setResults([]);
+    setQ(r.name);
+    enterMap({ center: [r.lat, r.lng], zoom: 17 });
+    const d = useWorld.getState().draft;
+    if (d) {
+      const patch: Partial<SpotDraft> = {};
+      if (!d.city.trim() && r.city) patch.city = r.city;
+      if (!d.country.trim() && r.country) patch.country = r.country;
+      if (!d.title.trim() && r.name) patch.title = r.name;
+      if (Object.keys(patch).length) updateDraft(patch);
+    }
+  }
+
+  return (
+    <div className="pointer-events-auto absolute inset-x-4 top-[calc(env(safe-area-inset-top)+1rem)] mx-auto max-w-md">
+      <div className={`flex h-12 items-center gap-2.5 rounded-2xl px-4 ${glass}`}>
+        <SearchIcon size={18} className="shrink-0 opacity-60" />
+        <input
+          ref={inputRef}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search a place…"
+          enterKeyHint="search"
+          autoCorrect="off"
+          className="h-full min-w-0 flex-1 bg-transparent text-base text-cream-50 outline-none placeholder:text-cream-50/45"
+        />
+        {loading ? (
+          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-cream-50/25 border-t-cream-50" />
+        ) : (
+          q && (
+            <button type="button" onClick={() => setQ('')} aria-label="Clear" className="shrink-0 opacity-60 active:scale-90">
+              <XIcon size={16} />
+            </button>
+          )
+        )}
+      </div>
+
+      <AnimatePresence>
+        {(results.length > 0 || error) && (
+          <motion.ul
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className={`mt-2 max-h-[45dvh] overflow-y-auto rounded-2xl py-1.5 ${glass}`}
+          >
+            {error && results.length === 0 ? (
+              <li className="px-4 py-3 text-[13px] text-cream-50/65">{error}</li>
+            ) : (
+              results.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() => choose(r)}
+                    className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition active:bg-white/10"
+                  >
+                    <PinIcon size={17} className="mt-0.5 shrink-0 opacity-60" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[14px] font-medium">{r.name}</span>
+                      {r.detail && <span className="block truncate text-xs text-cream-50/55">{r.detail}</span>}
+                    </span>
+                  </button>
+                </li>
+              ))
+            )}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+
+      {!q && (
+        <p className="mt-2 text-center text-xs font-medium text-cream-50/70 drop-shadow">or move the map until the pin sits on the spot</p>
+      )}
+    </div>
+  );
+}
+
 // ── Mode pilih titik di peta (crosshair di tengah layar) ───────
 export function PickOverlay() {
   const picking = useWorld((s) => s.editor.picking);
@@ -478,9 +597,7 @@ export function PickOverlay() {
     <AnimatePresence>
       {picking && (
         <motion.div key="pick" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none fixed inset-0 z-40">
-          <p className={`absolute inset-x-4 top-[calc(env(safe-area-inset-top)+1rem)] mx-auto max-w-sm rounded-2xl px-4 py-3 text-center text-[13px] font-medium tracking-tight ${glass}`}>
-            Move the map until the pin sits on the spot
-          </p>
+          <PlaceSearch />
           {/* Pin di tengah layar — ujungnya menunjuk titik tengah peta */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
             <div className="olw-pin olw-pin--visited" style={{ transform: 'rotate(-45deg)' }}>

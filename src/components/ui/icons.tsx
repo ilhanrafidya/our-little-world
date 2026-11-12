@@ -175,3 +175,9 @@ export const RotateIcon = (p: P) => (
     <path d="M18 2.5v2.4h-2.4M6 21.5v-2.4h2.4" />
   </Base>
 );
+export const SearchIcon = (p: P) => (
+  <Base {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M20 20l-4.2-4.2" />
+  </Base>
+);

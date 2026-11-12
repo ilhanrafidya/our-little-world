@@ -41,3 +41,62 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{ city: 
     return { city: null, country: null };
   }
 }
+
+export interface PlaceResult {
+  id: string;
+  name: string;
+  /** keterangan singkat: jalan · kota · negara */
+  detail: string;
+  city: string | null;
+  country: string | null;
+  lat: number;
+  lng: number;
+}
+
+type PhotonFeature = {
+  geometry: { coordinates: [number, number] };
+  properties: Record<string, string | undefined> & { osm_id?: number; osm_type?: string };
+};
+
+/**
+ * Cari tempat berdasarkan nama (OpenStreetMap via Photon — gratis, tanpa API key).
+ * Hasil diprioritaskan dekat posisi peta saat ini.
+ */
+export async function searchPlaces(
+  query: string,
+  near?: { lat: number; lng: number },
+  signal?: AbortSignal,
+): Promise<PlaceResult[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
+  const params = new URLSearchParams({ q, limit: '6', lang: 'en' });
+  if (near) {
+    params.set('lat', near.lat.toFixed(4));
+    params.set('lon', near.lng.toFixed(4));
+  }
+  const res = await fetch(`https://photon.komoot.io/api/?${params}`, {
+    signal,
+    referrerPolicy: 'strict-origin-when-cross-origin',
+  });
+  if (!res.ok) throw new Error('Search is unavailable right now.');
+  const data = (await res.json()) as { features?: PhotonFeature[] };
+
+  return (data.features ?? []).map((f, i) => {
+    const p = f.properties;
+    const city = p.city ?? p.town ?? p.village ?? p.county ?? p.state ?? null;
+    const street = [p.street, p.housenumber].filter(Boolean).join(' ');
+    const name = p.name ?? street ?? city ?? 'Unnamed place';
+    const detail = [street && street !== name ? street : null, city && city !== name ? city : null, p.country]
+      .filter(Boolean)
+      .join(' · ');
+    return {
+      id: `${p.osm_type ?? ''}${p.osm_id ?? i}`,
+      name,
+      detail,
+      city: city ? city.replace(/^(Kota|Kabupaten|City of|Regency of) /, '') : null,
+      country: p.country ?? null,
+      lat: f.geometry.coordinates[1],
+      lng: f.geometry.coordinates[0],
+    };
+  });
+}
