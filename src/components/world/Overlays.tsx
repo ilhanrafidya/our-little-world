@@ -241,7 +241,8 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
   const togglePause = useWorld((s) => s.togglePauseJourney);
   const skip = useWorld((s) => s.skipJourney);
 
-  const [choosing, setChoosing] = useState(false);
+  const choosing = useWorld((s) => s.journeyChoosing);
+  const setChoosing = useWorld((s) => s.setJourneyChoosing);
   const journey = journeys[j.who];
   const available = WHO_ORDER.filter((w) => journeys[w].length > 0);
 
@@ -403,22 +404,20 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
           ) : (
             <motion.div
               key="play"
-              layout
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 10, width: 172 }}
+              animate={{ opacity: 1, y: 0, width: choosing ? 272 : 172 }}
               exit={{ opacity: 0, y: 10 }}
-              transition={{ layout: { type: 'spring', damping: 26, stiffness: 320 } }}
-              className="pointer-events-auto relative z-[31] mb-2 flex h-12 items-center overflow-hidden rounded-full bg-cream-50 text-night-950 shadow-lg shadow-black/30"
-              style={{ borderRadius: 9999 }}
+              transition={{ width: { type: 'spring', damping: 24, stiffness: 300 } }}
+              className="pointer-events-auto relative z-[31] mb-2 grid h-12 place-items-center overflow-hidden rounded-full bg-cream-50 text-night-950 shadow-lg shadow-black/30"
             >
-              <AnimatePresence mode="popLayout" initial={false}>
+              <AnimatePresence initial={false}>
                 {choosing ? (
                   <motion.div
                     key="choices"
-                    className="flex h-full items-center px-1"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1, transition: { delay: 0.05 } }}
-                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="col-start-1 row-start-1 flex h-full items-center whitespace-nowrap px-1"
+                    initial={{ opacity: 0, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.08, duration: 0.25 } }}
+                    exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: 0.12 } }}
                   >
                     {WHO_ORDER.map((w, i) => {
                       const enabled = journeys[w].length > 0;
@@ -433,7 +432,7 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
                           }}
                           initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: enabled ? 1 : 0.35, x: 0, transition: { delay: 0.06 + i * 0.05 } }}
-                          className="flex h-10 items-center gap-2 rounded-full px-4 text-[15px] font-medium tracking-tight transition active:scale-95 active:bg-night-950/5"
+                          className="flex h-10 items-center gap-2 rounded-full px-3.5 text-[15px] font-medium tracking-tight transition active:scale-95 active:bg-night-950/5"
                         >
                           <span
                             className="h-2.5 w-2.5 rounded-full"
@@ -449,10 +448,10 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
                     key="label"
                     type="button"
                     onClick={onPlay}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex h-full items-center gap-2.5 px-6 text-[15px] font-medium tracking-tight active:scale-95"
+                    initial={{ opacity: 0, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.08, duration: 0.25 } }}
+                    exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: 0.12 } }}
+                    className="col-start-1 row-start-1 flex h-full items-center gap-2.5 whitespace-nowrap px-6 text-[15px] font-medium tracking-tight active:scale-95"
                   >
                     <PlayIcon size={15} /> Play Journey
                   </motion.button>
@@ -490,17 +489,18 @@ export function AddSpotFab() {
   const playing = useWorld((s) => s.journey.playing);
   const selected = useWorld((s) => s.selectedMemoryId);
   const albumOpen = useWorld((s) => s.albumOpen);
-  const hidden = editorOpen || playing || !!selected || albumOpen;
+  const choosing = useWorld((s) => s.journeyChoosing);
+  const hidden = editorOpen || playing || !!selected || albumOpen || choosing;
 
   return (
     <AnimatePresence>
       {!hidden && (
         <motion.button
           key="fab"
-          initial={{ scale: 0, rotate: -90 }}
-          animate={{ scale: 1, rotate: 0 }}
-          exit={{ scale: 0, rotate: 90 }}
-          transition={{ type: 'spring', damping: 18, stiffness: 260 }}
+          initial={{ opacity: 0, scale: 0.55, rotate: -60 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0, transition: { type: 'spring', damping: 15, stiffness: 230, delay: 0.24 } }}
+          exit={{ opacity: 0, scale: 0.55, rotate: 60, transition: { duration: 0.16, ease: 'easeIn' } }}
+          style={{ willChange: 'transform, opacity' }}
           onClick={openCreate}
           aria-label="Add memory"
           className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-night-950 shadow-xl shadow-black/35 transition active:scale-90"
@@ -519,17 +519,18 @@ export function AlbumButton() {
   const playing = useWorld((s) => s.journey.playing);
   const selected = useWorld((s) => s.selectedMemoryId);
   const albumOpen = useWorld((s) => s.albumOpen);
-  const hidden = editorOpen || playing || !!selected || albumOpen;
+  const choosing = useWorld((s) => s.journeyChoosing);
+  const hidden = editorOpen || playing || !!selected || albumOpen || choosing;
 
   return (
     <AnimatePresence>
       {!hidden && (
         <motion.button
           key="album-btn"
-          initial={{ scale: 0, rotate: 90 }}
-          animate={{ scale: 1, rotate: 0 }}
-          exit={{ scale: 0, rotate: -90 }}
-          transition={{ type: 'spring', damping: 18, stiffness: 260 }}
+          initial={{ opacity: 0, scale: 0.55, rotate: 60 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0, transition: { type: 'spring', damping: 15, stiffness: 230, delay: 0.24 } }}
+          exit={{ opacity: 0, scale: 0.55, rotate: -60, transition: { duration: 0.16, ease: 'easeIn' } }}
+          style={{ willChange: 'transform, opacity' }}
           onClick={() => setOpen(true)}
           aria-label="Open album"
           className={`fixed bottom-[max(env(safe-area-inset-bottom),1rem)] left-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full transition active:scale-90 ${glass}`}

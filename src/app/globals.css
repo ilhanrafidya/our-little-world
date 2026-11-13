@@ -240,14 +240,15 @@ body {
   }
 }
 
-/* Perangko kartu pos: tepi bergerigi */
+/* Perangko kartu pos: bingkai putih + garis putus-putus di dalam (hanya di sisi depan kartu) */
 .olw-stamp {
   font-family: var(--font-geist), system-ui, sans-serif;
-  border-radius: 2px;
-  -webkit-mask:
-    radial-gradient(circle 3px at 3px 3px, transparent 98%, #000) -3px -3px / 8px 8px round;
-  mask:
-    radial-gradient(circle 3px at 3px 3px, transparent 98%, #000) -3px -3px / 8px 8px round;
-  outline: 2px solid rgba(255, 250, 242, 0.85);
-  outline-offset: -5px;
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 2.5px #fffaf2,
+    0 4px 10px rgba(0, 0, 0, 0.28);
+  outline: 1.5px dashed rgba(255, 250, 242, 0.9);
+  outline-offset: -4.5px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }

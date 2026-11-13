@@ -77,6 +77,8 @@ interface WorldState {
   draft: SpotDraft | null;
   albumOpen: boolean;
   setAlbumOpen: (open: boolean) => void;
+  journeyChoosing: boolean;
+  setJourneyChoosing: (v: boolean) => void;
 
   setMemories: (memories: Memory[]) => void;
   upsertMemory: (memory: Memory) => void;
@@ -146,6 +148,8 @@ export const useWorld = create<WorldState>((set, get) => ({
   draft: null,
   albumOpen: false,
   setAlbumOpen: (albumOpen) => set({ albumOpen }),
+  journeyChoosing: false,
+  setJourneyChoosing: (journeyChoosing) => set({ journeyChoosing }),
 
   // ── data ──
   setMemories: (memories) => set({ memories }),
