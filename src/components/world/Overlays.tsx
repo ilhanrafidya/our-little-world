@@ -416,8 +416,8 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
                     key="choices"
                     className="absolute inset-0 flex items-center justify-center whitespace-nowrap"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.08, duration: 0.25 } }}
-                    exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: 0.12 } }}
+                    animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.03, duration: 0.24 } }}
+                    exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: 0.14 } }}
                   >
                     {WHO_ORDER.map((w, i) => {
                       const enabled = journeys[w].length > 0;
@@ -426,13 +426,14 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
                           key={w}
                           type="button"
                           disabled={!enabled}
+                          whileTap={enabled ? { scale: 0.95 } : undefined}
                           onClick={() => {
                             setChoosing(false);
                             start(w);
                           }}
                           initial={{ opacity: 0 }}
-                          animate={{ opacity: enabled ? 1 : 0.35, transition: { delay: 0.1 + i * 0.05, duration: 0.2 } }}
-                          className="flex h-10 items-center gap-2 rounded-full px-3.5 text-[15px] font-medium tracking-tight transition active:scale-95 active:bg-night-950/5"
+                          animate={{ opacity: enabled ? 1 : 0.35, transition: { delay: 0.05 + i * 0.04, duration: 0.2 } }}
+                          className="flex h-10 items-center gap-2 rounded-full px-3.5 text-[15px] font-medium tracking-tight transition-colors active:bg-night-950/5"
                         >
                           <span
                             className="h-2.5 w-2.5 rounded-full"
@@ -449,8 +450,8 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
                     type="button"
                     onClick={onPlay}
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.08, duration: 0.25 } }}
-                    exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: 0.12 } }}
+                    animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.03, duration: 0.24 } }}
+                    exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: 0.14 } }}
                     className="absolute inset-0 flex items-center justify-center gap-2.5 whitespace-nowrap text-[15px] font-medium tracking-tight active:scale-95"
                   >
                     <PlayIcon size={15} /> Play Journey
@@ -500,10 +501,11 @@ export function AddSpotFab() {
           initial={{ opacity: 0, scale: 0.55, rotate: -60 }}
           animate={{ opacity: 1, scale: 1, rotate: 0, transition: { type: 'spring', damping: 15, stiffness: 230, delay: 0.24 } }}
           exit={{ opacity: 0, scale: 0.55, rotate: 60, transition: { duration: 0.16, ease: 'easeIn' } }}
+          whileTap={{ scale: 0.9 }}
           style={{ willChange: 'transform, opacity' }}
           onClick={openCreate}
           aria-label="Add memory"
-          className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-night-950 shadow-xl shadow-black/35 transition active:scale-90"
+          className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] right-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full bg-linear-to-br from-[var(--accent)] to-[var(--accent2)] text-night-950 shadow-xl shadow-black/35 transition-colors"
         >
           <PlusIcon size={26} strokeWidth={2.2} />
         </motion.button>
@@ -530,10 +532,11 @@ export function AlbumButton() {
           initial={{ opacity: 0, scale: 0.55, rotate: 60 }}
           animate={{ opacity: 1, scale: 1, rotate: 0, transition: { type: 'spring', damping: 15, stiffness: 230, delay: 0.24 } }}
           exit={{ opacity: 0, scale: 0.55, rotate: -60, transition: { duration: 0.16, ease: 'easeIn' } }}
+          whileTap={{ scale: 0.9 }}
           style={{ willChange: 'transform, opacity' }}
           onClick={() => setOpen(true)}
           aria-label="Open album"
-          className={`fixed bottom-[max(env(safe-area-inset-bottom),1rem)] left-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full transition active:scale-90 ${glass}`}
+          className={`fixed bottom-[max(env(safe-area-inset-bottom),1rem)] left-4 z-30 mb-2 grid h-14 w-14 place-items-center rounded-full transition-colors ${glass}`}
         >
           <AlbumIcon size={23} />
         </motion.button>
