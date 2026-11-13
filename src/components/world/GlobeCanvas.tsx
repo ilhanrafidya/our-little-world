@@ -9,6 +9,7 @@ import type { ThemeTokens } from '@/lib/theme';
 import type { MemoryWho } from '@/types/memory';
 import { useWorld } from '@/store/world-store';
 import { runJourney } from './journeyEngine';
+import { DetailLayer } from './detailLayer';
 import { sound } from '@/lib/sound';
 import { PEOPLE } from '@/lib/people';
 
@@ -118,6 +119,11 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
 
   const modeRef = useRef(mode);
   modeRef.current = mode;
+
+  // citra satelit saat kamera dekat (lihat detailLayer.ts)
+  const detailRef = useRef<DetailLayer | null>(null);
+  const [detailOn, setDetailOn] = useState(false);
+  useEffect(() => () => detailRef.current?.dispose(), []);
 
   // ── ukuran layar (iOS: toolbar Safari mengubah tinggi) ──
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -238,6 +244,7 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
     ({ lat, lng, altitude }: { lat: number; lng: number; altitude: number }) => {
       (material.uniforms.globeRotation!.value as THREE.Vector2).set(lng, lat);
       updateMarkers({ lat, lng, altitude });
+      detailRef.current?.update({ lat, lng, altitude });
       if (busyRef.current || !gestureRef.current || modeRef.current !== 'globe' || altitude > ENTER_MAP_ALTITUDE) return;
       gestureRef.current = false;
 
@@ -255,6 +262,7 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
     if (!g) return;
     // Batasi pixel ratio agar ringan di iPhone (layar 3x)
     g.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    if (!detailRef.current) detailRef.current = new DetailLayer(g, material.uniforms, setDetailOn);
 
     const c = controls();
     if (c) {
@@ -346,6 +354,7 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
       onPov: (pov) => {
         (material.uniforms.globeRotation!.value as THREE.Vector2).set(pov.lng, pov.lat);
         updateMarkers(pov);
+        detailRef.current?.update(pov);
       },
       onArrive: (city) => {
         sound.arrive();
@@ -367,6 +376,13 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journeyState.playing, journeyState.who, journeys, controls, stopJourney, material, updateMarkers]);
 
+  // Saat mobil melaju, penanda kota diredupkan agar kendaraan tidak tertutup
+  const carTravel = journeyState.playing && journeyState.phase === 'travel' && journeyState.vehicle === 'car';
+  useEffect(() => {
+    document.documentElement.classList.toggle('olw-car-travel', carTravel);
+    return () => document.documentElement.classList.remove('olw-car-travel');
+  }, [carTravel]);
+
   // ── data visual ──
   const visibleArcs = useMemo(() => (showRoutes && !journeyState.playing ? arcs : []), [showRoutes, journeyState.playing, arcs]);
 
@@ -376,6 +392,7 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
   if (size.w === 0) return null;
 
   return (
+    <>
     <Globe
       ref={globeRef}
       width={size.w}
@@ -392,7 +409,7 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
       htmlElementsData={cities}
       htmlLat="lat"
       htmlLng="lng"
-      htmlAltitude={0.004}
+      htmlAltitude={0.0008}
       htmlElement={makeMarker}
       htmlTransitionDuration={0}
       // Gelombang cahaya saat tiba di kota
@@ -420,5 +437,13 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
       arcAltitudeAutoScale={0.45}
       arcsTransitionDuration={600}
     />
+    <p
+      className={`pointer-events-none fixed right-3 top-[calc(env(safe-area-inset-top)+4.25rem)] z-10 text-[9px] font-medium tracking-tight text-cream-50/45 transition-opacity duration-500 ${
+        detailOn && mode === 'globe' ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      Imagery © Esri, Maxar
+    </p>
+    </>
   );
 }

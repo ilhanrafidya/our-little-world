@@ -252,3 +252,11 @@ body {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
+
+/* Play Journey: saat mobil melaju, penanda kota meredup agar mobil tidak tertutup */
+.olw-marker > *,
+.olw-marker::before,
+.olw-marker::after { transition: opacity 0.4s ease; }
+.olw-car-travel .olw-marker > *,
+.olw-car-travel .olw-marker::before,
+.olw-car-travel .olw-marker::after { opacity: 0.18; }

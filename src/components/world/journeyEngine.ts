@@ -227,8 +227,8 @@ export function runJourney(
     return line;
   }
 
-  async function arrive(city: City, index: number, carMode: boolean) {
-    await flyTo({ lat: city.lat, lng: city.lng, altitude: carMode ? 0.14 : 0.32 }, 900);
+  async function arrive(city: City, index: number, altitude: number) {
+    await flyTo({ lat: city.lat, lng: city.lng, altitude }, 900);
     if (isCancelled()) return;
     cb.onArrive(city);
     setJ({ phase: 'arrive', index, vehicle: null });
@@ -240,9 +240,10 @@ export function runJourney(
     const kind: 'plane' | 'car' = km > CAR_MAX_KM ? 'plane' : 'car';
     setJ({ phase: 'travel', index, vehicle: kind });
 
-    const flightAlt = kind === 'plane' ? clamp(km / 9000, 0.04, 0.35) : 0.003;
-    const camBase = kind === 'plane' ? 0.42 : 0.13;
-    const camPeak = kind === 'plane' ? clamp(km / 3500, 0.3, 1.9) : clamp(km / 450, 0.03, 0.2);
+    const flightAlt = kind === 'plane' ? clamp(km / 9000, 0.04, 0.35) : 0.0007;
+    // mobil: makin dekat kotanya, makin rendah kamera → rute tetap terlihat panjang di layar
+    const camBase = kind === 'plane' ? 0.42 : clamp(km / 1300, 0.022, 0.13);
+    const camPeak = kind === 'plane' ? clamp(km / 3500, 0.3, 1.9) : clamp(km / 2600, 0.006, 0.06);
     const duration = kind === 'plane' ? clamp(3200 + km * 0.45, 4000, 8000) : clamp(2800 + km * 12, 3000, 5000);
     const baseScale = kind === 'plane' ? 0.062 : 0.048;
 
@@ -341,7 +342,7 @@ export function runJourney(
     scene.remove(shadow);
     sprite.material.dispose();
     shadow.material.dispose();
-    await arrive(b, index, kind === 'car');
+    await arrive(b, index, kind === 'car' ? clamp(camBase * 1.5, 0.05, 0.14) : 0.32);
   }
 
   function cleanup() {
