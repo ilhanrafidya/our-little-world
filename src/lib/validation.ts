@@ -59,7 +59,7 @@ const memoryFields = {
   photo: photoSchema.nullable().optional(),
 };
 
-export const createMemorySchema = z.object(memoryFields);
+export const createMemorySchema = z.object({ ...memoryFields, addedBy: z.enum(['ilhan', 'nadya']).nullable().optional() });
 export const updateMemorySchema = z.object(memoryFields).partial();
 export const idSchema = z.uuid();
 

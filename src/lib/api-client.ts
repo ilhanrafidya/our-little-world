@@ -50,10 +50,13 @@ export interface MemoryPayload {
 }
 
 export async function apiCreateMemory(payload: MemoryPayload): Promise<Memory> {
+  const { getMe } = await import('./notify-client');
   const { memory } = await request<{ memory: Memory }>('/api/memories', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, addedBy: getMe() }),
   });
+  const { markSeen } = await import('./seen');
+  markSeen(memory.createdAt);
   return memory;
 }
 

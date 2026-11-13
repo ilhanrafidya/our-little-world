@@ -30,6 +30,7 @@ function toMemory(r: Row): Memory {
       : null,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
+    addedBy: (r.added_by as 'ilhan' | 'nadya' | null | undefined) ?? null,
   };
 }
 
@@ -58,12 +59,13 @@ export async function createMemory(input: CreateMemoryInput): Promise<Memory> {
   const rows = await sql`
     INSERT INTO memories (
       title, city, country, lat, lng, status, who, memory_date, story, spotify_url,
-      photo_url, photo_pathname, photo_width, photo_height
+      photo_url, photo_pathname, photo_width, photo_height, added_by
     ) VALUES (
       ${input.title}, ${input.city}, ${input.country ?? null}, ${input.lat}, ${input.lng},
       ${input.status}, ${input.status === 'wishlist' ? 'together' : (input.who ?? 'together')},
       ${input.memoryDate ?? null}, ${input.story ?? null}, ${input.spotifyUrl ?? null},
-      ${p?.url ?? null}, ${p?.pathname ?? null}, ${p?.width ?? null}, ${p?.height ?? null}
+      ${p?.url ?? null}, ${p?.pathname ?? null}, ${p?.width ?? null}, ${p?.height ?? null},
+      ${input.addedBy ?? null}
     )
     RETURNING id
   `;

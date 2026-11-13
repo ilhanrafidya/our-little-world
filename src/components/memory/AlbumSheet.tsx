@@ -20,6 +20,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 function MiniPolaroid({ memory, index, onOpen }: { memory: Memory; index: number; onOpen: () => void }) {
   const tilt = tiltFor(memory.id);
+  const isNew = useWorld((s) => s.newIds.includes(memory.id));
   return (
     <motion.button
       type="button"
@@ -31,6 +32,11 @@ function MiniPolaroid({ memory, index, onOpen }: { memory: Memory; index: number
       className="group w-full rounded-[3px] bg-cream-50 p-1.5 pb-2.5 text-left text-night-950 shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
     >
       <div className="relative aspect-square w-full overflow-hidden bg-night-800">
+        {isNew && (
+          <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-night-950 shadow">
+            New
+          </span>
+        )}
         {memory.status === 'visited' && memory.who !== 'together' && (
           <span
             className="olw-stamp absolute right-1.5 top-1.5 z-10 grid h-7 w-6 rotate-6 place-items-center text-[11px] font-bold text-white"

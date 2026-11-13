@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import type { Memory, MemoryWho } from '@/types/memory';
+import NewMemories from './NewMemories';
+import NotifySheet from './NotifySheet';
 import { buildArcs, buildJourney, groupByCity, type City } from '@/lib/geo';
 import { useWorld } from '@/store/world-store';
 import Starfield from '@/components/ui/Starfield';
@@ -172,6 +174,8 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
       <PolaroidModal memory={selected} />
       <AddSpotDrawer />
       <AlbumSheet memories={memories} />
+      <NewMemories />
+      <NotifySheet />
     </main>
   );
 }

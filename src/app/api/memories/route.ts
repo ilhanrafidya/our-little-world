@@ -4,6 +4,7 @@ import { createMemory, listMemories } from '@/lib/memories-repo';
 import { createMemorySchema, formatIssues } from '@/lib/validation';
 import { deleteBlobSafe } from '@/lib/blob';
 import { jsonError, jsonOk, readJson } from '@/lib/http';
+import { notifyNewMemory } from '@/lib/push';
 
 /** GET /api/memories → semua kenangan (urut kronologis) */
 export async function GET() {
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const memory = await createMemory(parsed.data);
+    after(() => notifyNewMemory(memory));
     return jsonOk({ memory }, 201);
   } catch (err) {
     console.error('[memories:create]', err);

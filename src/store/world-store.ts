@@ -79,6 +79,12 @@ interface WorldState {
   setAlbumOpen: (open: boolean) => void;
   journeyChoosing: boolean;
   setJourneyChoosing: (v: boolean) => void;
+  /** kenangan baru dari pasangan sejak terakhir buka app */
+  newIds: string[];
+  setNewIds: (ids: string[]) => void;
+  clearNew: (id: string) => void;
+  notifyOpen: boolean;
+  setNotifyOpen: (open: boolean) => void;
 
   setMemories: (memories: Memory[]) => void;
   upsertMemory: (memory: Memory) => void;
@@ -150,6 +156,11 @@ export const useWorld = create<WorldState>((set, get) => ({
   setAlbumOpen: (albumOpen) => set({ albumOpen }),
   journeyChoosing: false,
   setJourneyChoosing: (journeyChoosing) => set({ journeyChoosing }),
+  newIds: [],
+  setNewIds: (newIds) => set({ newIds }),
+  clearNew: (id) => set((s) => (s.newIds.includes(id) ? { newIds: s.newIds.filter((x) => x !== id) } : s)),
+  notifyOpen: false,
+  setNotifyOpen: (notifyOpen) => set({ notifyOpen }),
 
   // ── data ──
   setMemories: (memories) => set({ memories }),

@@ -376,6 +376,14 @@ export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journeyState.playing, journeyState.who, journeys, controls, stopJourney, material, updateMarkers]);
 
+  // Kota yang punya kenangan baru dari pasangan → penanda bercahaya
+  const newIds = useWorld((s) => s.newIds);
+  const allMemories = useWorld((s) => s.memories);
+  useEffect(() => {
+    const keys = new Set((allMemories ?? []).filter((m) => newIds.includes(m.id)).map((m) => m.cityKey));
+    for (const [key, el] of markerEls.current) el.classList.toggle('olw-marker--new', keys.has(key));
+  }, [newIds, allMemories, cities]);
+
   // Saat mobil melaju, penanda kota diredupkan agar kendaraan tidak tertutup
   const carTravel = journeyState.playing && journeyState.phase === 'travel' && journeyState.vehicle === 'car';
   useEffect(() => {

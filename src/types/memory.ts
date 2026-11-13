@@ -28,4 +28,6 @@ export interface Memory {
   photo: MemoryPhoto | null;
   createdAt: string;
   updatedAt: string;
+  /** siapa yang menambahkan (null = sebelum fitur notifikasi) */
+  addedBy: 'ilhan' | 'nadya' | null;
 }

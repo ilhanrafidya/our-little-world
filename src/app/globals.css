@@ -260,3 +260,19 @@ body {
 .olw-car-travel .olw-marker > *,
 .olw-car-travel .olw-marker::before,
 .olw-car-travel .olw-marker::after { opacity: 0.18; }
+
+/* Kenangan baru dari pasangan: cincin cahaya di titik kota */
+.olw-marker--new::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 9999px;
+  border: 1.5px solid #fffaf2;
+  box-shadow: 0 0 14px 2px var(--who, var(--accent, #ff8fab));
+  animation: olw-new-ring 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes olw-new-ring {
+  0%, 100% { transform: scale(0.85); opacity: 0.35; }
+  50% { transform: scale(1.1); opacity: 1; }
+}

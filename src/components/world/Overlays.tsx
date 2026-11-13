@@ -13,6 +13,7 @@ import LockButton from '@/components/auth/LockButton';
 import { reverseGeocode, searchPlaces, type PlaceResult } from '@/lib/geocode';
 import {
   AlbumIcon,
+  BellIcon,
   PinIcon,
   SearchIcon,
   XIcon,
@@ -65,6 +66,7 @@ export function TopBar({
   const mode = useWorld((s) => s.mode);
   const picking = useWorld((s) => s.editor.picking);
   const backToGlobe = useWorld((s) => s.backToGlobe);
+  const setNotifyOpen = useWorld((s) => s.setNotifyOpen);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (picking) setOpen(false);
@@ -132,6 +134,18 @@ export function TopBar({
           <AnimatePresence>
             {open && (
               <div className="absolute right-12 top-0 flex items-center gap-2">
+                <motion.button
+                  key="notify"
+                  {...leftItem(2)}
+                  onClick={() => {
+                    setOpen(false);
+                    setNotifyOpen(true);
+                  }}
+                  aria-label="Notifications"
+                  className={`${circle} ${glass}`}
+                >
+                  <BellIcon size={18} />
+                </motion.button>
                 <motion.button
                   key="routes"
                   {...leftItem(1)}

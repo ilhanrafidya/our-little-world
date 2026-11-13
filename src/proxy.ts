@@ -29,5 +29,5 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Semua halaman kecuali API, aset Next, dan file statis publik
-  matcher: ['/((?!api/|_next/static|_next/image|favicon.ico|icons/|textures/|manifest.webmanifest|robots.txt).*)'],
+  matcher: ['/((?!api/|_next/static|_next/image|favicon.ico|icons/|textures/|manifest.webmanifest|sw.js|robots.txt).*)'],
 };
