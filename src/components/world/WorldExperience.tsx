@@ -34,9 +34,15 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
   const cities = useMemo(() => groupByCity(memories), [memories]);
   // Journey per orang: berdua (Ours), Ilhan sendiri, Nadya sendiri
   const journeys = useMemo(() => {
-    const of = (w: MemoryWho) => buildJourney(groupByCity(memories.filter((m) => m.status === 'visited' && m.who === w)));
+    // Urutan & tanggal dari kenangan orang itu, tapi posisi titik sama persis dengan penanda kota di globe
+    const at = new Map(cities.map((c) => [c.key, c]));
+    const of = (w: MemoryWho) =>
+      buildJourney(groupByCity(memories.filter((m) => m.status === 'visited' && m.who === w))).map((c) => {
+        const shared = at.get(c.key);
+        return shared ? { ...c, lat: shared.lat, lng: shared.lng, bounds: shared.bounds } : c;
+      });
     return { together: of('together'), ilhan: of('ilhan'), nadya: of('nadya') } satisfies Record<MemoryWho, City[]>;
-  }, [memories]);
+  }, [memories, cities]);
   const journey = journeys.together;
   const arcs = useMemo(() => buildArcs(journey, cities), [journey, cities]);
 
