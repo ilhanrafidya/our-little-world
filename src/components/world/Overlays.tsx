@@ -408,13 +408,13 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
               animate={{ opacity: 1, y: 0, width: choosing ? 272 : 172 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ width: { type: 'spring', damping: 24, stiffness: 300 } }}
-              className="pointer-events-auto relative z-[31] mb-2 grid h-12 place-items-center overflow-hidden rounded-full bg-cream-50 text-night-950 shadow-lg shadow-black/30"
+              className="pointer-events-auto relative z-[31] mb-2 h-12 overflow-hidden rounded-full bg-cream-50 text-night-950 shadow-lg shadow-black/30"
             >
               <AnimatePresence initial={false}>
                 {choosing ? (
                   <motion.div
                     key="choices"
-                    className="col-start-1 row-start-1 flex h-full items-center whitespace-nowrap px-1"
+                    className="absolute inset-0 flex items-center justify-center whitespace-nowrap"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.08, duration: 0.25 } }}
                     exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: 0.12 } }}
@@ -430,8 +430,8 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
                             setChoosing(false);
                             start(w);
                           }}
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: enabled ? 1 : 0.35, x: 0, transition: { delay: 0.06 + i * 0.05 } }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: enabled ? 1 : 0.35, transition: { delay: 0.1 + i * 0.05, duration: 0.2 } }}
                           className="flex h-10 items-center gap-2 rounded-full px-3.5 text-[15px] font-medium tracking-tight transition active:scale-95 active:bg-night-950/5"
                         >
                           <span
@@ -451,7 +451,7 @@ export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.08, duration: 0.25 } }}
                     exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: 0.12 } }}
-                    className="col-start-1 row-start-1 flex h-full items-center gap-2.5 whitespace-nowrap px-6 text-[15px] font-medium tracking-tight active:scale-95"
+                    className="absolute inset-0 flex items-center justify-center gap-2.5 whitespace-nowrap text-[15px] font-medium tracking-tight active:scale-95"
                   >
                     <PlayIcon size={15} /> Play Journey
                   </motion.button>
