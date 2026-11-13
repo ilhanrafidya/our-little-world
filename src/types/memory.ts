@@ -1,4 +1,6 @@
 export type MemoryStatus = 'visited' | 'wishlist';
+/** together = kenangan berdua; ilhan / nadya = kenangan saat sendiri */
+export type MemoryWho = 'together' | 'ilhan' | 'nadya';
 
 export interface MemoryPhoto {
   url: string;
@@ -17,6 +19,7 @@ export interface Memory {
   lat: number;
   lng: number;
   status: MemoryStatus;
+  who: MemoryWho;
   /** 'YYYY-MM-DD' atau null (wishlist boleh tanpa tanggal) */
   memoryDate: string | null;
   story: string | null;

@@ -4,7 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect } from 'react';
 import L from 'leaflet';
 import { AttributionControl, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import type { Memory, MemoryStatus } from '@/types/memory';
+import type { Memory, MemoryStatus, MemoryWho } from '@/types/memory';
+import { PEOPLE } from '@/lib/people';
 import { TILE_ATTRIBUTION, TILE_URL, type ThemeTokens } from '@/lib/theme';
 import { useWorld } from '@/store/world-store';
 
@@ -19,13 +20,16 @@ const STAR =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.8l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
 
 const iconCache = new Map<string, L.DivIcon>();
-function pinIcon(status: MemoryStatus, selected: boolean): L.DivIcon {
-  const key = `${status}-${selected}`;
+function pinIcon(status: MemoryStatus, who: MemoryWho, selected: boolean): L.DivIcon {
+  const key = `${status}-${who}-${selected}`;
   let icon = iconCache.get(key);
   if (!icon) {
     icon = L.divIcon({
       className: 'olw-pin-wrap',
-      html: `<div class="olw-pin olw-pin--${status}${selected ? ' is-selected' : ''}">${status === 'visited' ? HEART : STAR}</div>`,
+      html:
+        status === 'visited' && who !== 'together'
+          ? `<div class="olw-pin olw-pin--${who}${selected ? ' is-selected' : ''}"><span class="olw-pin__initial">${PEOPLE[who].initial}</span></div>`
+          : `<div class="olw-pin olw-pin--${status}${selected ? ' is-selected' : ''}">${status === 'visited' ? HEART : STAR}</div>`,
       iconSize: [38, 46],
       iconAnchor: [19, 44],
     });
@@ -117,7 +121,7 @@ export default function LeafletCanvas({ memories, theme, visible }: LeafletCanva
         <Marker
           key={m.id}
           position={[m.lat, m.lng]}
-          icon={pinIcon(m.status, m.id === selectedId)}
+          icon={pinIcon(m.status, m.who, m.id === selectedId)}
           zIndexOffset={m.id === selectedId ? 1000 : 0}
           eventHandlers={{ click: () => select(m.id) }}
           title={m.title}

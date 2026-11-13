@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion';
-import type { Memory, MemoryStatus } from '@/types/memory';
+import type { Memory, MemoryStatus, MemoryWho } from '@/types/memory';
+import { PEOPLE, WHO_ORDER } from '@/lib/people';
 import { formatDate } from '@/lib/format';
 import { useWorld } from '@/store/world-store';
 import { sound } from '@/lib/sound';
@@ -30,6 +31,15 @@ function MiniPolaroid({ memory, index, onOpen }: { memory: Memory; index: number
       className="group w-full rounded-[3px] bg-cream-50 p-1.5 pb-2.5 text-left text-night-950 shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
     >
       <div className="relative aspect-square w-full overflow-hidden bg-night-800">
+        {memory.status === 'visited' && memory.who !== 'together' && (
+          <span
+            className="olw-stamp absolute right-1.5 top-1.5 z-10 grid h-7 w-6 rotate-6 place-items-center text-[11px] font-bold text-white"
+            style={{ background: PEOPLE[memory.who].color! }}
+            aria-hidden
+          >
+            {PEOPLE[memory.who].initial}
+          </span>
+        )}
         {memory.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={memory.photo.url} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -56,6 +66,7 @@ export default function AlbumSheet({ memories }: { memories: Memory[] }) {
   const openCreate = useWorld((s) => s.openCreate);
   const dragControls = useDragControls();
   const [tab, setTab] = useState<MemoryStatus>('visited');
+  const [who, setWho] = useState<'all' | MemoryWho>('all');
 
   const counts = useMemo(
     () => ({
@@ -67,11 +78,21 @@ export default function AlbumSheet({ memories }: { memories: Memory[] }) {
 
   // Visited: terbaru dulu. Wishlist: yang ada tanggal rencana paling dekat dulu, lalu "someday".
   const items = useMemo(() => {
-    const list = memories.filter((m) => m.status === tab);
+    const list = memories.filter((m) => m.status === tab && (tab === 'wishlist' || who === 'all' || m.who === who));
     return tab === 'visited'
       ? list.sort((a, b) => (b.memoryDate ?? '').localeCompare(a.memoryDate ?? '') || b.createdAt.localeCompare(a.createdAt))
       : list.sort((a, b) => (a.memoryDate ?? '9999').localeCompare(b.memoryDate ?? '9999'));
-  }, [memories, tab]);
+  }, [memories, tab, who]);
+
+  const whoCounts = useMemo(() => {
+    const visited = memories.filter((m) => m.status === 'visited');
+    return {
+      all: visited.length,
+      together: visited.filter((m) => m.who === 'together').length,
+      ilhan: visited.filter((m) => m.who === 'ilhan').length,
+      nadya: visited.filter((m) => m.who === 'nadya').length,
+    };
+  }, [memories]);
 
   const cityCount = useMemo(() => new Set(items.map((m) => m.cityKey)).size, [items]);
 
@@ -176,12 +197,49 @@ export default function AlbumSheet({ memories }: { memories: Memory[] }) {
               </div>
             </div>
 
+            {/* Filter siapa (hanya Visited) */}
+            <AnimatePresence initial={false}>
+              {tab === 'visited' && (
+                <motion.div
+                  key="who-filter"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, ease }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex gap-2 overflow-x-auto px-6 pb-3">
+                    {(['all', ...WHO_ORDER] as const).map((w) => {
+                      const active = who === w;
+                      const color = w === 'all' ? null : (PEOPLE[w].color ?? 'var(--accent)');
+                      return (
+                        <button
+                          key={w}
+                          type="button"
+                          onClick={() => setWho(w)}
+                          className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
+                            active ? 'border-transparent bg-cream-50 text-night-950' : 'border-white/12 text-cream-50/65'
+                          }`}
+                        >
+                          {color && <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />}
+                          {w === 'all' ? 'All' : PEOPLE[w].label}
+                          <span className={`tabular-nums ${active ? 'text-night-950/40' : 'text-cream-50/35'}`}>
+                            {whoCounts[w]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Grid */}
             <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-2">
               <AnimatePresence mode="wait">
                 {items.length === 0 ? (
                   <motion.div
-                    key={`empty-${tab}`}
+                    key={`empty-${tab}-${who}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -207,7 +265,7 @@ export default function AlbumSheet({ memories }: { memories: Memory[] }) {
                   </motion.div>
                 ) : (
                   <motion.div
-                    key={`grid-${tab}`}
+                    key={`grid-${tab}-${who}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}

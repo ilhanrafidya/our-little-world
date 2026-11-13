@@ -52,6 +52,7 @@ const memoryFields = {
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   status: z.enum(['visited', 'wishlist']),
+  who: z.enum(['together', 'ilhan', 'nadya']).optional(),
   memoryDate: z.preprocess(emptyToNull, z.iso.date('Date must be YYYY-MM-DD').nullable().optional()),
   story: nullableText(5000, 'Story'),
   spotifyUrl: spotifySchema,

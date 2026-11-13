@@ -6,7 +6,8 @@ import { useWorld, type SpotDraft } from '@/store/world-store';
 import { apiCreateMemory, apiUpdateMemory, ApiError, uploadPhoto, type FieldError, type MemoryPayload } from '@/lib/api-client';
 import { getCurrentLocation, reverseGeocode } from '@/lib/geocode';
 import { parseSpotifyTrackId } from '@/lib/spotify';
-import type { MemoryPhoto } from '@/types/memory';
+import type { MemoryPhoto, MemoryWho } from '@/types/memory';
+import { PEOPLE, WHO_ORDER, partnerOf } from '@/lib/people';
 import { sound } from '@/lib/sound';
 import { CameraIcon, HeartIcon, MapIcon, PinIcon, StarIcon, XIcon } from '@/components/ui/icons';
 
@@ -57,6 +58,22 @@ const COPY = {
   },
 } as const;
 
+/** Teks untuk kenangan saat sendiri ("kartu pos"). */
+function soloCopy(who: Exclude<MemoryWho, 'together'>) {
+  const name = PEOPLE[who].label;
+  return {
+    eyebrow: `${name}’s postcard`,
+    heading: `A postcard from ${name}`,
+    editHeading: 'Update this postcard',
+    placePh: 'Where are you right now?',
+    dateLabel: 'Date',
+    storyLabel: 'Note',
+    storyPh: `What made you think of ${partnerOf(who)} here?`,
+    songLabel: 'Song of the moment',
+    submit: 'Send postcard',
+  };
+}
+
 export default function AddSpotDrawer() {
   const editor = useWorld((s) => s.editor);
   const draft = useWorld((s) => s.draft);
@@ -80,7 +97,8 @@ export default function AddSpotDrawer() {
   const fe = (f: string) => fieldErrors.find((e) => e.field === f)?.message;
   const isEdit = editor.mode === 'edit';
   const isWish = draft?.status === 'wishlist';
-  const copy = COPY[draft?.status ?? 'visited'];
+  const soloWho = draft && draft.status === 'visited' && draft.who !== 'together' ? draft.who : null;
+  const copy = soloWho ? soloCopy(soloWho) : COPY[draft?.status ?? 'visited'];
 
   function set<K extends keyof SpotDraft>(key: K, value: SpotDraft[K]) {
     updateDraft({ [key]: value } as Partial<SpotDraft>);
@@ -91,6 +109,7 @@ export default function AddSpotDrawer() {
     const patch: Partial<SpotDraft> = { status };
     // Wishlist belum terjadi → tanggal hari ini tidak relevan
     if (status === 'wishlist' && draft.memoryDate === todayIso()) patch.memoryDate = '';
+    if (status === 'wishlist') patch.who = 'together'; // wishlist selalu berdua
     if (status === 'visited' && !draft.memoryDate) patch.memoryDate = todayIso();
     updateDraft(patch);
   }
@@ -170,6 +189,7 @@ export default function AddSpotDrawer() {
         lat: draft.lat!,
         lng: draft.lng!,
         status: draft.status,
+        who: draft.status === 'wishlist' ? 'together' : draft.who,
         memoryDate: draft.memoryDate || null,
         story: draft.story.trim() || null,
         spotifyUrl: draft.spotifyUrl.trim() || null,
@@ -282,6 +302,49 @@ export default function AddSpotDrawer() {
                   })}
                 </div>
               </section>
+
+              {/* With — hanya untuk Visited (wishlist selalu berdua) */}
+              <AnimatePresence initial={false}>
+                {!isWish && (
+                  <motion.section
+                    key="with"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.35, ease }}
+                    className="overflow-hidden"
+                  >
+                    <span className={labelCls}>With</span>
+                    <div className="relative grid grid-cols-3 rounded-2xl bg-night-950/[0.05] p-1">
+                      {WHO_ORDER.map((w) => {
+                        const active = draft.who === w;
+                        const color = PEOPLE[w].color ?? 'var(--accent)';
+                        return (
+                          <button
+                            key={w}
+                            type="button"
+                            onClick={() => set('who', w)}
+                            className="relative z-10 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium"
+                          >
+                            {active && (
+                              <motion.span
+                                layoutId="who-pill"
+                                className="absolute inset-0 -z-10 rounded-xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                                transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+                              />
+                            )}
+                            <span
+                              className="h-2 w-2 rounded-full transition-opacity"
+                              style={{ background: color, opacity: active ? 1 : 0.45 }}
+                            />
+                            <span className={active ? 'text-night-950' : 'text-night-950/45'}>{PEOPLE[w].label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.section>
+                )}
+              </AnimatePresence>
 
               {/* Foto — hanya untuk Visited */}
               <AnimatePresence initial={false}>

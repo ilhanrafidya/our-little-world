@@ -8,6 +8,7 @@ import { apiDeleteMemory, ApiError } from '@/lib/api-client';
 import { useWorld } from '@/store/world-store';
 import SpotifyEmbed from './SpotifyEmbed';
 import { sound } from '@/lib/sound';
+import { PEOPLE } from '@/lib/people';
 import { FlipIcon, HeartIcon, PencilIcon, PinIcon, StarIcon, TrashIcon, XIcon } from '@/components/ui/icons';
 
 /** Kemiringan acak tapi stabil per kenangan (seperti foto ditempel di dinding). */
@@ -47,6 +48,8 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
     }
     sound.swish();
   }, [flipped]);
+
+  const solo = memory && memory.status === 'visited' && memory.who !== 'together' ? PEOPLE[memory.who] : null;
 
   const tilt = useMemo(() => (memory ? tiltFor(memory.id) : 0), [memory]);
   const open = !!memory && mode === 'map';
@@ -100,9 +103,18 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                 <button
                   type="button"
                   onClick={() => setFlipped(true)}
-                  className="block w-full overflow-hidden bg-night-800"
+                  className="relative block w-full overflow-hidden bg-night-800"
                   aria-label="Flip to read the story"
                 >
+                  {solo && (
+                    <span
+                      className="olw-stamp absolute right-2.5 top-2.5 z-10 grid h-12 w-10 rotate-6 place-items-center text-[19px] font-bold text-white shadow-md"
+                      style={{ background: solo.color! }}
+                      aria-hidden
+                    >
+                      {solo.initial}
+                    </span>
+                  )}
                   {memory.photo ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -120,6 +132,11 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                 </button>
                 <div className="px-1 pt-4">
                   <p className="font-hand text-[1.9rem] leading-none">{memory.title}</p>
+                  {solo && (
+                    <p className="mt-1 font-hand text-xl leading-none" style={{ color: solo.color! }}>
+                      from {solo.label}
+                    </p>
+                  )}
                   <p className="mt-2 flex items-center justify-between gap-2 text-sm text-night-950/60">
                     <span className="flex min-w-0 items-center gap-1">
                       <PinIcon size={14} className="shrink-0" />
@@ -148,14 +165,23 @@ export default function PolaroidModal({ memory }: { memory: Memory | null }) {
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <span
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
-                      memory.status === 'visited' ? 'bg-[#ffe1e8] text-[#c2185b]' : 'bg-[#ebe6ff] text-[#5b4bc4]'
-                    }`}
-                  >
-                    {memory.status === 'visited' ? <HeartIcon size={12} /> : <StarIcon size={12} />}
-                    {memory.status === 'visited' ? 'Visited' : 'Wishlist'}
-                  </span>
+                  {solo ? (
+                    <span
+                      className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white"
+                      style={{ background: solo.color! }}
+                    >
+                      {solo.possessive} postcard
+                    </span>
+                  ) : (
+                    <span
+                      className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+                        memory.status === 'visited' ? 'bg-[#ffe1e8] text-[#c2185b]' : 'bg-[#ebe6ff] text-[#5b4bc4]'
+                      }`}
+                    >
+                      {memory.status === 'visited' ? <HeartIcon size={12} /> : <StarIcon size={12} />}
+                      {memory.status === 'visited' ? 'Visited' : 'Wishlist'}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => setFlipped(false)}

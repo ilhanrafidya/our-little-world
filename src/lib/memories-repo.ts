@@ -1,5 +1,6 @@
 import { getSql } from './db';
-import type { Memory, MemoryStatus } from '@/types/memory';
+import { ensureSchema } from './migrate';
+import type { Memory, MemoryStatus, MemoryWho } from '@/types/memory';
 import type { CreateMemoryInput, UpdateMemoryInput } from './validation';
 
 type Row = Record<string, unknown>;
@@ -15,6 +16,7 @@ function toMemory(r: Row): Memory {
     lat: Number(r.lat),
     lng: Number(r.lng),
     status: r.status as MemoryStatus,
+    who: ((r.who as MemoryWho | undefined) ?? 'together') as MemoryWho,
     memoryDate: (r.memory_date as string | null) ?? null,
     story: (r.story as string | null) ?? null,
     spotifyUrl: (r.spotify_url as string | null) ?? null,
@@ -33,6 +35,7 @@ function toMemory(r: Row): Memory {
 
 /** Urut kronologis: dipakai Globe untuk flight arcs & Play Journey. */
 export async function listMemories(): Promise<Memory[]> {
+  await ensureSchema();
   const sql = getSql();
   const rows = await sql`
     SELECT * FROM memories_api
@@ -42,21 +45,24 @@ export async function listMemories(): Promise<Memory[]> {
 }
 
 export async function getMemory(id: string): Promise<Memory | null> {
+  await ensureSchema();
   const sql = getSql();
   const rows = await sql`SELECT * FROM memories_api WHERE id = ${id} LIMIT 1`;
   return rows[0] ? toMemory(rows[0]) : null;
 }
 
 export async function createMemory(input: CreateMemoryInput): Promise<Memory> {
+  await ensureSchema();
   const sql = getSql();
   const p = input.photo ?? null;
   const rows = await sql`
     INSERT INTO memories (
-      title, city, country, lat, lng, status, memory_date, story, spotify_url,
+      title, city, country, lat, lng, status, who, memory_date, story, spotify_url,
       photo_url, photo_pathname, photo_width, photo_height
     ) VALUES (
       ${input.title}, ${input.city}, ${input.country ?? null}, ${input.lat}, ${input.lng},
-      ${input.status}, ${input.memoryDate ?? null}, ${input.story ?? null}, ${input.spotifyUrl ?? null},
+      ${input.status}, ${input.status === 'wishlist' ? 'together' : (input.who ?? 'together')},
+      ${input.memoryDate ?? null}, ${input.story ?? null}, ${input.spotifyUrl ?? null},
       ${p?.url ?? null}, ${p?.pathname ?? null}, ${p?.width ?? null}, ${p?.height ?? null}
     )
     RETURNING id
@@ -82,6 +88,9 @@ export async function updateMemory(
 
   const photo = patch.photo === undefined ? existing.photo : patch.photo;
   const photoChanged = patch.photo !== undefined && patch.photo?.url !== existing.photo?.url;
+  const status = pick('status', existing.status) as MemoryStatus;
+  // Wishlist selalu milik berdua
+  const who: MemoryWho = status === 'wishlist' ? 'together' : ((pick('who', existing.who) as MemoryWho) ?? 'together');
 
   const sql = getSql();
   await sql`
@@ -91,7 +100,8 @@ export async function updateMemory(
       country        = ${pick('country', existing.country) as string | null},
       lat            = ${pick('lat', existing.lat) as number},
       lng            = ${pick('lng', existing.lng) as number},
-      status         = ${pick('status', existing.status) as MemoryStatus},
+      status         = ${status},
+      who            = ${who},
       memory_date    = ${pick('memoryDate', existing.memoryDate) as string | null},
       story          = ${pick('story', existing.story) as string | null},
       spotify_url    = ${pick('spotifyUrl', existing.spotifyUrl) as string | null},
@@ -108,6 +118,7 @@ export async function updateMemory(
 }
 
 export async function deleteMemory(id: string): Promise<{ photoUrl: string | null } | null> {
+  await ensureSchema();
   const sql = getSql();
   const rows = await sql`DELETE FROM memories WHERE id = ${id} RETURNING photo_url`;
   if (!rows[0]) return null;

@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS memories (
 
   -- Kenangan
   status          memory_status NOT NULL DEFAULT 'visited',
+  -- together = berdua; ilhan / nadya = kenangan saat sendiri (selalu visited)
+  who             TEXT NOT NULL DEFAULT 'together' CHECK (who IN ('together', 'ilhan', 'nadya')),
   memory_date     DATE,
   story           TEXT CHECK (story IS NULL OR char_length(story) <= 5000),
   spotify_url     TEXT,
@@ -74,5 +76,6 @@ SELECT
   photo_width,
   photo_height,
   to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at,
-  to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS updated_at
+  to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS updated_at,
+  who
 FROM memories;

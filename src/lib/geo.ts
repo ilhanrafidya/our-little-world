@@ -18,6 +18,8 @@ export interface City {
   firstDate: string | null;
   /** foto kenangan paling awal di kota ini (untuk kartu mini Play Journey) */
   coverUrl: string | null;
+  /** siapa saja yang punya kenangan Visited di kota ini */
+  people: { together: boolean; ilhan: boolean; nadya: boolean };
   bounds: Bounds;
 }
 
@@ -73,6 +75,11 @@ export function groupByCity(memories: Memory[]): City[] {
       count: ms.length,
       firstDate: dates[0] ?? null,
       coverUrl: withPhoto[0]?.photo?.url ?? null,
+      people: {
+        together: ms.some((m) => m.status === 'visited' && m.who === 'together'),
+        ilhan: ms.some((m) => m.status === 'visited' && m.who === 'ilhan'),
+        nadya: ms.some((m) => m.status === 'visited' && m.who === 'nadya'),
+      },
       bounds: [
         [minLat, minLng],
         [maxLat, maxLng],

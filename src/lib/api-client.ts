@@ -1,7 +1,7 @@
 'use client';
 
 import { upload } from '@vercel/blob/client';
-import type { Memory, MemoryPhoto, MemoryStatus } from '@/types/memory';
+import type { Memory, MemoryPhoto, MemoryStatus, MemoryWho } from '@/types/memory';
 import { compressImage } from './image-compress';
 
 export interface FieldError {
@@ -42,6 +42,7 @@ export interface MemoryPayload {
   lat: number;
   lng: number;
   status: MemoryStatus;
+  who: MemoryWho;
   memoryDate: string | null;
   story: string | null;
   spotifyUrl: string | null;

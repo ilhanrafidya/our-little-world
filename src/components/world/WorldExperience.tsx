@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
-import type { Memory } from '@/types/memory';
-import { buildArcs, buildJourney, groupByCity } from '@/lib/geo';
+import type { Memory, MemoryWho } from '@/types/memory';
+import { buildArcs, buildJourney, groupByCity, type City } from '@/lib/geo';
 import { useWorld } from '@/store/world-store';
 import Starfield from '@/components/ui/Starfield';
 import GlobeView from './GlobeView';
@@ -32,7 +32,12 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
   }, [initialMemories]);
 
   const cities = useMemo(() => groupByCity(memories), [memories]);
-  const journey = useMemo(() => buildJourney(cities), [cities]);
+  // Journey per orang: berdua (Ours), Ilhan sendiri, Nadya sendiri
+  const journeys = useMemo(() => {
+    const of = (w: MemoryWho) => buildJourney(groupByCity(memories.filter((m) => m.status === 'visited' && m.who === w)));
+    return { together: of('together'), ilhan: of('ilhan'), nadya: of('nadya') } satisfies Record<MemoryWho, City[]>;
+  }, [memories]);
+  const journey = journeys.together;
   const arcs = useMemo(() => buildArcs(journey, cities), [journey, cities]);
 
   const { phase, tokens, override, cycle } = useTimeTheme();
@@ -125,7 +130,7 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
         style={{ pointerEvents: isGlobe ? 'auto' : 'none' }}
         aria-hidden={!isGlobe}
       >
-        <GlobeView cities={cities} arcs={arcs} journey={journey} theme={tokens} showRoutes={showRoutes} autoRotate={autoRotate} />
+        <GlobeView cities={cities} arcs={arcs} journeys={journeys} theme={tokens} showRoutes={showRoutes} autoRotate={autoRotate} />
       </motion.div>
 
       {/* Layer Peta 2D */}
@@ -154,7 +159,7 @@ export default function WorldExperience({ initialMemories }: { initialMemories: 
         onToggleMute={toggleMute}
       />
       <GlobeHint empty={memories.length === 0} />
-      <JourneyControls journey={journey} />
+      <JourneyControls journeys={journeys} />
       <AlbumButton />
       <AddSpotFab />
       <PickOverlay />

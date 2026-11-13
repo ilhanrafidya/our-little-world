@@ -6,9 +6,11 @@ import * as THREE from 'three';
 import { haversineKm, nearestCity, type Arc, type City } from '@/lib/geo';
 import { subsolarPoint } from '@/lib/sun';
 import type { ThemeTokens } from '@/lib/theme';
+import type { MemoryWho } from '@/types/memory';
 import { useWorld } from '@/store/world-store';
 import { runJourney } from './journeyEngine';
 import { sound } from '@/lib/sound';
+import { PEOPLE } from '@/lib/people';
 
 /**
  * Implementasi Globe 3D. HANYA di-load di browser lewat GlobeView (dynamic, ssr:false)
@@ -90,7 +92,7 @@ type Controls = {
 export interface GlobeCanvasProps {
   cities: City[];
   arcs: Arc[];
-  journey: City[];
+  journeys: Record<MemoryWho, City[]>;
   theme: ThemeTokens;
   /** tampilkan garis rute saat globe diam (opsi pengguna, default mati) */
   showRoutes: boolean;
@@ -98,7 +100,7 @@ export interface GlobeCanvasProps {
   autoRotate: boolean;
 }
 
-export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes, autoRotate }: GlobeCanvasProps) {
+export default function GlobeCanvas({ cities, arcs, journeys, theme, showRoutes, autoRotate }: GlobeCanvasProps) {
   const autoRotateRef = useRef(autoRotate);
   autoRotateRef.current = autoRotate;
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
@@ -188,7 +190,22 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes, 
       el = document.createElement('div');
       markerEls.current.set(c.key, el);
     }
-    el.className = `olw-marker olw-marker--${c.status}`;
+    // warna titik: berdua = pink, sendiri = warna orangnya, campuran = pink + cincin warna orangnya
+    const { together, ilhan, nadya } = c.people;
+    let variant: string = c.status;
+    let ring: string | null = null;
+    if (c.status === 'visited') {
+      if (!together && ilhan && !nadya) variant = 'ilhan';
+      else if (!together && nadya && !ilhan) variant = 'nadya';
+      else if (ilhan || nadya) {
+        variant = 'visited olw-marker--mixed';
+        ring = ilhan && nadya ? '#fffaf2' : ilhan ? PEOPLE.ilhan.color : PEOPLE.nadya.color;
+      }
+    }
+    el.className = `olw-marker olw-marker--${variant}`;
+    if (variant === 'ilhan') el.style.setProperty('--who', PEOPLE.ilhan.color!);
+    else if (variant === 'nadya') el.style.setProperty('--who', PEOPLE.nadya.color!);
+    else if (ring) el.style.setProperty('--who', ring);
     el.innerHTML = `<span class="olw-marker__dot"></span><span class="olw-marker__label"></span>`;
     (el.querySelector('.olw-marker__label') as HTMLSpanElement).textContent = c.name;
     el.onclick = (e) => {
@@ -257,12 +274,13 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes, 
       });
     }
 
-    const last = journey[journey.length - 1];
+    const ours = journeys.together;
+    const last = ours[ours.length - 1];
     const pov = last ? { lat: last.lat, lng: last.lng, altitude: 2.2 } : DEFAULT_POV;
     g.pointOfView(pov, 0);
     (material.uniforms.globeRotation!.value as THREE.Vector2).set(pov.lng, pov.lat);
     updateMarkers(pov);
-  }, [controls, journey, material, updateMarkers]);
+  }, [controls, journeys, material, updateMarkers]);
 
   // Kota baru ditambah → hitung ulang visibilitas penanda
   useEffect(() => {
@@ -312,6 +330,8 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes, 
   const [burst, setBurst] = useState<City | null>(null);
   useEffect(() => {
     if (!journeyState.playing) return;
+    const journey = journeys[journeyState.who];
+    const color = PEOPLE[journeyState.who].color ?? theme.accent;
     const g = globeRef.current;
     if (!g || journey.length === 0) {
       stopJourney();
@@ -322,7 +342,7 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes, 
     busyRef.current = true;
 
     let burstTimer: ReturnType<typeof setTimeout> | undefined;
-    const run = runJourney(g, journey, theme.accent, {
+    const run = runJourney(g, journey, color, {
       onPov: (pov) => {
         (material.uniforms.globeRotation!.value as THREE.Vector2).set(pov.lng, pov.lat);
         updateMarkers(pov);
@@ -345,7 +365,7 @@ export default function GlobeCanvas({ cities, arcs, journey, theme, showRoutes, 
     };
     // theme.accent sengaja tidak jadi dependency: ganti tema tidak boleh mengulang journey
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journeyState.playing, journey, controls, stopJourney, material, updateMarkers]);
+  }, [journeyState.playing, journeyState.who, journeys, controls, stopJourney, material, updateMarkers]);
 
   // ── data visual ──
   const visibleArcs = useMemo(() => (showRoutes && !journeyState.playing ? arcs : []), [showRoutes, journeyState.playing, arcs]);

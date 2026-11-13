@@ -131,6 +131,20 @@ body {
   background: linear-gradient(135deg, #b9a6ff, #8b7bff);
   border-style: dashed;
 }
+.olw-pin--ilhan {
+  background: linear-gradient(135deg, #9dd4ff, #5fb2f5);
+}
+.olw-pin--nadya {
+  background: linear-gradient(135deg, #ffc9a6, #ff9e70);
+}
+.olw-pin__initial {
+  transform: rotate(45deg);
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fffaf2;
+  line-height: 1;
+}
 .olw-pin.is-selected {
   transform: rotate(-45deg) scale(1.25);
   box-shadow:
@@ -170,6 +184,29 @@ body {
   border: 2px solid var(--accent, #ff7a9c);
   animation: olw-pulse 2.2s ease-out infinite;
 }
+.olw-marker--ilhan .olw-marker__dot,
+.olw-marker--nadya .olw-marker__dot {
+  background: var(--who);
+  box-shadow:
+    0 0 0 2px rgba(255, 250, 242, 0.95),
+    0 0 14px 2px var(--who);
+}
+.olw-marker--ilhan .olw-marker__dot::after,
+.olw-marker--nadya .olw-marker__dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid var(--who);
+  animation: olw-pulse 2.2s ease-out infinite;
+}
+/* kota campuran (berdua + sendiri): titik pink dengan cincin warna orangnya */
+.olw-marker--mixed .olw-marker__dot {
+  box-shadow:
+    0 0 0 2px rgba(255, 250, 242, 0.95),
+    0 0 0 4.5px var(--who),
+    0 0 14px 3px var(--accent, #ff7a9c);
+}
 .olw-marker--wishlist .olw-marker__dot {
   background: var(--wish, #c4b5fd);
   box-shadow:
@@ -201,4 +238,16 @@ body {
     transform: scale(3.2);
     opacity: 0;
   }
+}
+
+/* Perangko kartu pos: tepi bergerigi */
+.olw-stamp {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  border-radius: 2px;
+  -webkit-mask:
+    radial-gradient(circle 3px at 3px 3px, transparent 98%, #000) -3px -3px / 8px 8px round;
+  mask:
+    radial-gradient(circle 3px at 3px 3px, transparent 98%, #000) -3px -3px / 8px 8px round;
+  outline: 2px solid rgba(255, 250, 242, 0.85);
+  outline-offset: -5px;
 }

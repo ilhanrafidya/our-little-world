@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Memory, MemoryPhoto, MemoryStatus } from '@/types/memory';
+import type { Memory, MemoryPhoto, MemoryStatus, MemoryWho } from '@/types/memory';
 import type { Bounds, LatLngTuple } from '@/lib/geo';
 
 export type WorldMode = 'globe' | 'map';
@@ -21,6 +21,7 @@ export interface SpotDraft {
   lat: number | null;
   lng: number | null;
   status: MemoryStatus;
+  who: MemoryWho;
   memoryDate: string;
   story: string;
   spotifyUrl: string;
@@ -33,6 +34,8 @@ export interface SpotDraft {
 export type JourneyPhase = 'intro' | 'travel' | 'arrive' | 'outro';
 export interface JourneyState {
   playing: boolean;
+  /** journey siapa: berdua, Ilhan, atau Nadya */
+  who: MemoryWho;
   paused: boolean;
   /** indeks kota tujuan saat ini di daftar journey */
   index: number;
@@ -44,6 +47,7 @@ export interface JourneyState {
 
 const IDLE_JOURNEY: JourneyState = {
   playing: false,
+  who: 'together',
   paused: false,
   index: -1,
   phase: null,
@@ -83,7 +87,7 @@ interface WorldState {
   setMapView: (v: { lat: number; lng: number; zoom: number }) => void;
   select: (id: string | null) => void;
 
-  startJourney: () => void;
+  startJourney: (who?: MemoryWho) => void;
   stopJourney: () => void;
   setJourney: (patch: Partial<JourneyState>) => void;
   togglePauseJourney: () => void;
@@ -115,6 +119,7 @@ function emptyDraft(lat: number | null, lng: number | null): SpotDraft {
     lat,
     lng,
     status: 'visited',
+    who: 'together',
     memoryDate: today(),
     story: '',
     spotifyUrl: '',
@@ -175,7 +180,7 @@ export const useWorld = create<WorldState>((set, get) => ({
   select: (selectedMemoryId) => set({ selectedMemoryId }),
 
   // ── journey ──
-  startJourney: () => set({ journey: { ...IDLE_JOURNEY, playing: true, phase: 'intro' }, selectedMemoryId: null }),
+  startJourney: (who = 'together') => set({ journey: { ...IDLE_JOURNEY, who, playing: true, phase: 'intro' }, selectedMemoryId: null }),
   stopJourney: () => set({ journey: IDLE_JOURNEY }),
   setJourney: (patch) => set((s) => ({ journey: { ...s.journey, ...patch } })),
   togglePauseJourney: () => set((s) => ({ journey: { ...s.journey, paused: !s.journey.paused } })),
@@ -203,6 +208,7 @@ export const useWorld = create<WorldState>((set, get) => ({
         lat: m.lat,
         lng: m.lng,
         status: m.status,
+        who: m.who,
         memoryDate: m.memoryDate ?? '',
         story: m.story ?? '',
         spotifyUrl: m.spotifyUrl ?? '',

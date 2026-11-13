@@ -7,6 +7,8 @@ import { formatDate } from '@/lib/format';
 import type { Phase, ThemeOverride } from '@/lib/theme';
 import { THEMES } from '@/lib/theme';
 import { useWorld, type SpotDraft } from '@/store/world-store';
+import type { MemoryWho } from '@/types/memory';
+import { PEOPLE, WHO_ORDER } from '@/lib/people';
 import LockButton from '@/components/auth/LockButton';
 import { reverseGeocode, searchPlaces, type PlaceResult } from '@/lib/geocode';
 import {
@@ -225,7 +227,13 @@ function CarGlyph({ size = 14 }: { size?: number }) {
   );
 }
 
-export function JourneyControls({ journey }: { journey: City[] }) {
+const JOURNEY_TITLE: Record<MemoryWho, { intro: string; outro: string }> = {
+  together: { intro: 'Our Journey', outro: 'So far, together' },
+  ilhan: { intro: 'Ilhan’s Journey', outro: 'Where Ilhan has been' },
+  nadya: { intro: 'Nadya’s Journey', outro: 'Where Nadya has been' },
+};
+
+export function JourneyControls({ journeys }: { journeys: Record<MemoryWho, City[]> }) {
   const mode = useWorld((s) => s.mode);
   const j = useWorld((s) => s.journey);
   const start = useWorld((s) => s.startJourney);
@@ -233,7 +241,22 @@ export function JourneyControls({ journey }: { journey: City[] }) {
   const togglePause = useWorld((s) => s.togglePauseJourney);
   const skip = useWorld((s) => s.skipJourney);
 
-  if (mode !== 'globe' || journey.length === 0) return null;
+  const [choosing, setChoosing] = useState(false);
+  const journey = journeys[j.who];
+  const available = WHO_ORDER.filter((w) => journeys[w].length > 0);
+
+  // Tutup pilihan kalau mode berubah / journey mulai
+  useEffect(() => {
+    if (j.playing || mode !== 'globe') setChoosing(false);
+  }, [j.playing, mode]);
+
+  if (mode !== 'globe' || available.length === 0) return null;
+
+  const onPlay = () => {
+    // hanya ada satu jenis journey → langsung mulai
+    if (available.length === 1) start(available[0]);
+    else setChoosing(true);
+  };
 
   const city = j.index >= 0 ? journey[j.index] : undefined;
   const from = j.index > 0 ? journey[j.index - 1] : undefined;
@@ -255,7 +278,7 @@ export function JourneyControls({ journey }: { journey: City[] }) {
             <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-cream-50/60">
               {journey.length} {journey.length === 1 ? 'city' : 'cities'}
             </p>
-            <p className="mt-3 font-display text-5xl italic text-cream-50 drop-shadow-lg">Our Journey</p>
+            <p className="mt-3 font-display text-5xl italic text-cream-50 drop-shadow-lg">{JOURNEY_TITLE[j.who].intro}</p>
           </motion.div>
         )}
 
@@ -317,7 +340,7 @@ export function JourneyControls({ journey }: { journey: City[] }) {
             transition={{ duration: 0.9, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="pointer-events-none absolute inset-x-0 top-[26%] z-20 px-6 text-center"
           >
-            <p className="font-display text-4xl italic text-cream-50 drop-shadow-lg">So far, together</p>
+            <p className="font-display text-4xl italic text-cream-50 drop-shadow-lg">{JOURNEY_TITLE[j.who].outro}</p>
             <div className="mx-auto mt-6 grid max-w-xs grid-cols-3 gap-2">
               {[
                 [j.summary.cities, j.summary.cities === 1 ? 'city' : 'cities'],
@@ -333,6 +356,8 @@ export function JourneyControls({ journey }: { journey: City[] }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {choosing && <div className="fixed inset-0 z-[19]" onClick={() => setChoosing(false)} aria-hidden />}
 
       {/* Kontrol */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3 px-4 pb-safe">
@@ -376,16 +401,64 @@ export function JourneyControls({ journey }: { journey: City[] }) {
               </button>
             </motion.div>
           ) : (
-            <motion.button
+            <motion.div
               key="play"
+              layout
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              onClick={start}
-              className="pointer-events-auto mb-2 flex h-12 items-center gap-2.5 rounded-full bg-cream-50 px-6 text-[15px] font-medium tracking-tight text-night-950 shadow-lg shadow-black/30 transition active:scale-95"
+              transition={{ layout: { type: 'spring', damping: 26, stiffness: 320 } }}
+              className="pointer-events-auto relative z-[31] mb-2 flex h-12 items-center overflow-hidden rounded-full bg-cream-50 text-night-950 shadow-lg shadow-black/30"
+              style={{ borderRadius: 9999 }}
             >
-              <PlayIcon size={15} /> Play Journey
-            </motion.button>
+              <AnimatePresence mode="popLayout" initial={false}>
+                {choosing ? (
+                  <motion.div
+                    key="choices"
+                    className="flex h-full items-center px-1"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1, transition: { delay: 0.05 } }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                  >
+                    {WHO_ORDER.map((w, i) => {
+                      const enabled = journeys[w].length > 0;
+                      return (
+                        <motion.button
+                          key={w}
+                          type="button"
+                          disabled={!enabled}
+                          onClick={() => {
+                            setChoosing(false);
+                            start(w);
+                          }}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: enabled ? 1 : 0.35, x: 0, transition: { delay: 0.06 + i * 0.05 } }}
+                          className="flex h-10 items-center gap-2 rounded-full px-4 text-[15px] font-medium tracking-tight transition active:scale-95 active:bg-night-950/5"
+                        >
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ background: PEOPLE[w].color ?? 'var(--accent)' }}
+                          />
+                          {PEOPLE[w].label}
+                        </motion.button>
+                      );
+                    })}
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    key="label"
+                    type="button"
+                    onClick={onPlay}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex h-full items-center gap-2.5 px-6 text-[15px] font-medium tracking-tight active:scale-95"
+                  >
+                    <PlayIcon size={15} /> Play Journey
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
